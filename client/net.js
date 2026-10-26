@@ -4,9 +4,10 @@ import { SERVER_URL } from './config.js';
 // Where the multiplayer server lives: ?server=... overrides config.js, otherwise the page's own host.
 // Static hosts (GitHub Pages) have no server, so online play is unavailable there unless one is configured.
 export function serverUrl() {
-  let url = new URLSearchParams(location.search).get('server') || SERVER_URL;
+  const staticHost = location.protocol === 'file:' || location.hostname.endsWith('github.io');
+  let url = new URLSearchParams(location.search).get('server') || (staticHost ? SERVER_URL : '');
   if (!url) {
-    if (location.protocol === 'file:' || location.hostname.endsWith('github.io')) return null;
+    if (staticHost) return null;
     url = `${location.protocol}//${location.host}`;
   }
   return url.replace(/^http/, 'ws').replace(/\/+$/, '');

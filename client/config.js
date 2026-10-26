@@ -1,4 +1,3 @@
 // Multiplayer server address used when the game is hosted on a static site such as GitHub Pages.
-// Leave empty when the Node server also serves the page (npm start, Render, Fly.io, ...).
-// Example: export const SERVER_URL = 'https://iron-curtain-rts.onrender.com';
+// Only used on static hosts (GitHub Pages); when the Node server serves the page itself (npm start, Render) it connects to that host.
 export const SERVER_URL = 'https://iron-curtain-rts.onrender.com';
