@@ -1,0 +1,18 @@
+{
+  "name": "iron-curtain-rts",
+  "version": "0.1.0",
+  "description": "Cold War real-time strategy game playable in the browser with online multiplayer",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node test/headless.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

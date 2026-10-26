@@ -1,0 +1,52 @@
+// Online smoke test: two clients create/join a room, start, issue commands, receive snapshots.
+import WebSocket from 'ws';
+import { TYPE_INDEX } from '../shared/data.js';
+
+const URL = process.env.URL || 'ws://localhost:8080';
+const open = () => new Promise(res => { const ws = new WebSocket(URL); ws.msgs = []; ws.on('message', d => ws.msgs.push(JSON.parse(d))); ws.on('open', () => res(ws)); });
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const last = (ws, t) => [...ws.msgs].reverse().find(m => m.t === t);
+
+const a = await open();
+a.send(JSON.stringify({ t: 'create', name: 'Alice' }));
+await wait(200);
+const code = last(a, 'lobby').code;
+const b = await open();
+b.send(JSON.stringify({ t: 'join', code, name: 'Bob' }));
+await wait(200);
+console.log('lobby slots:', last(b, 'lobby').slots.map(s => `${s.name}/${s.country}`).join(', '));
+b.send(JSON.stringify({ t: 'slot', idx: 1, patch: { country: 'CUB' } }));
+a.send(JSON.stringify({ t: 'chat', text: 'hello comrade' }));
+await wait(200);
+console.log('chat at b:', last(b, 'chat')?.text);
+a.send(JSON.stringify({ t: 'start' }));
+await wait(500);
+const sa = last(a, 'start'), sb = last(b, 'start');
+console.log('start: a.you', sa.you, 'b.you', sb.you, 'countries', sa.setup.players.map(p => p.country).join(','));
+const mcvOf = (ws, pid) => last(ws, 'snap').s.e.find(e => e[1] === 0 && e[3] === pid && e[2] === TYPE_INDEX.mcv);
+const mcvA = mcvOf(a, sa.you);
+a.send(JSON.stringify({ t: 'cmd', cmd: { c: 'deploy', ids: [mcvA[0]] } }));
+const mcvB = mcvOf(b, sb.you);
+b.send(JSON.stringify({ t: 'cmd', cmd: { c: 'deploy', ids: [mcvB[0]] } }));
+await wait(500);
+const snap = last(b, 'snap').s;
+console.log('buildings seen by b:', snap.e.filter(e => e[1] === 1 && e[3] >= 0).map(e => `p${e[3]}`).join(','));
+a.send(JSON.stringify({ t: 'cmd', cmd: { c: 'queue', type: 'power' } }));
+await wait(1500);
+console.log('a queue:', JSON.stringify(last(a, 'snap').s.pl[sa.you].q.building));
+// reconnect test
+const token = last(b, 'lobby').token;
+b.close();
+await wait(300);
+const b2 = await open();
+b2.send(JSON.stringify({ t: 'join', code, name: 'Bob', token }));
+await wait(500);
+console.log('rejoin got start:', !!last(b2, 'start'), 'snaps:', b2.msgs.filter(m => m.t === 'snap').length);
+const n0 = a.msgs.filter(m => m.t === 'snap').length;
+await wait(1000);
+console.log('snap rate/s:', a.msgs.filter(m => m.t === 'snap').length - n0);
+a.send(JSON.stringify({ t: 'surrender' }));
+await wait(1500);
+console.log('b sees over:', b2.msgs.some(m => m.t === 'snap' && m.s.over), 'back in lobby:', last(b2, 'lobby').inGame === false);
+a.close(); b2.close();
+process.exit(0);
