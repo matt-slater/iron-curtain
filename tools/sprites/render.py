@@ -59,7 +59,7 @@ def setup_scene(frame_px, fast):
 
     # key light from the upper left of the screen, soft sky fill
     sun = bpy.data.lights.new('sun', 'SUN')
-    sun.energy = 3.2
+    sun.energy = 3.8
     sun.angle = math.radians(4)
     so = bpy.data.objects.new('sun', sun)
     so.rotation_euler = (math.radians(-12), math.radians(-48), 0)
@@ -67,8 +67,8 @@ def setup_scene(frame_px, fast):
     world = bpy.data.worlds.new('world')
     world.use_nodes = True
     bg = world.node_tree.nodes['Background']
-    bg.inputs['Color'].default_value = (0.42, 0.44, 0.47, 1)
-    bg.inputs['Strength'].default_value = 0.9
+    bg.inputs['Color'].default_value = (0.48, 0.47, 0.42, 1)
+    bg.inputs['Strength'].default_value = 0.75
     sc.world = world
 
     # invisible ground that only receives shadows

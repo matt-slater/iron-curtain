@@ -174,6 +174,24 @@ def sphere(name, r, loc, material, parent=None, scale=(1, 1, 1), team=False):
     return _obj(name, bm, material, parent, team, smooth=True)
 
 
+def star(name, loc, size, facing, material, parent):
+    """Flat five-pointed star decal standing on a vertical face; facing is the outward direction ('+y', '-y', '+x', '-x')."""
+    bm = bmesh.new()
+    pts = []
+    for i in range(10):
+        a = math.pi / 2 + i * math.pi / 5
+        r = size if i % 2 == 0 else size * 0.42
+        pts.append((math.cos(a) * r, math.sin(a) * r))
+    c = bm.verts.new((0, 0, 0))
+    vs = [bm.verts.new((u, 0, v)) for u, v in pts]
+    for i in range(10):
+        bm.faces.new((c, vs[i], vs[(i + 1) % 10]))
+    rot = {'+y': 0, '-y': math.pi, '+x': -math.pi / 2, '-x': math.pi / 2}[facing]
+    from mathutils import Matrix
+    bmesh.ops.transform(bm, matrix=Matrix.Translation(Vector(loc)) @ Matrix.Rotation(rot, 4, 'Z'), verts=bm.verts)
+    return _obj(name, bm, material, parent)
+
+
 def root(name):
     o = bpy.data.objects.new(name, None)
     bpy.context.scene.collection.objects.link(o)
@@ -215,12 +233,12 @@ def wheelset(parent, xs, yc, r, steel, rubber, width=0.06):
 
 
 # ---------- T-72 (Warsaw Pact main tank) ----------
-PACT = dict(hull='#5f6e46', dark='#46523a', drum='#3e452e', rubber='#25261f', steel='#4c5240', rust='#7a4a2e')
+PACT = dict(hull='#4d8034', dark='#36602a', drum='#40522c', rubber='#25261f', steel='#4c5a3c', rust='#8a4a26')
 
 
 def t72():
     body, tur = root('body'), root('turret')
-    hull = mat(PACT['hull'], grime=0.32)
+    hull = mat(PACT['hull'], grime=0.2)
     dark = mat(PACT['dark'], grime=0.3)
     rubber = mat(PACT['rubber'], rough=0.9, grime=0.1)
     steel = mat(PACT['steel'], rough=0.6, metal=0.3)
@@ -244,7 +262,7 @@ def t72():
     for s in (1, -1):
         cyl('drum', H(2.0), 0.15, (-L + 0.045, s * 0.12, H(10.0)), 'y', mat(PACT['drum'], grime=0.45, metal=0.2), body)
     # turret: low cast dome with the 125 mm gun, cupola and IR searchlight
-    turret = mat('#647449', grime=0.3)
+    turret = mat('#548a38', grime=0.18)
     dome('dome', 0.27, 0.25, H(6.4), (0.0, 0, H(8.2)), turret, tur, cut=0.05)
     cyl('ring', 0.24, H(0.8), (0, 0, H(8.4)), 'z', dark, tur, verts=20)
     box('mantlet', 0.18, 0.27, -0.06, 0.06, H(9.6), H(13), dark, tur)
@@ -258,19 +276,22 @@ def t72():
     loft('bin', [(-0.3, -0.17), (-0.18, -0.2), (-0.18, 0.2), (-0.3, 0.17)], H(9.0),
          [(-0.3, -0.16), (-0.18, -0.19), (-0.18, 0.19), (-0.3, 0.16)], H(12.0), team_mat(), tur, team=True)
     cyl('snorkel', H(1.0), 0.32, (-0.26, 0, H(12.6)), 'y', dark, tur)
+    red = mat('#c42a1c', rough=0.5, grime=0.05)
+    for s in (1, -1):
+        star('star', (-0.06, s * 0.235, H(11.2)), 0.045, '+y' if s > 0 else '-y', red, tur)
     return {'layers': {'body': body, 'turret': tur}}
 
 
 # ---------- M60 Patton (NATO main tank) ----------
-NATO = dict(hull='#6e7448', camo=['#4a3a26', '#2a2a20', '#5a6436'], rubber='#24251f', steel='#555a44')
+NATO = dict(hull='#6f6c34', camo=['#6a4220', '#1e1d16', '#46602a'], rubber='#24251f', steel='#5a5844')
 
 
 def m60():
     body, tur = root('body'), root('turret')
-    hull = mat(NATO['hull'], camo=NATO['camo'], grime=0.25)
+    hull = mat(NATO['hull'], camo=NATO['camo'], grime=0.15, scale=30)
     rubber = mat(NATO['rubber'], rough=0.9, grime=0.1)
     steel = mat(NATO['steel'], rough=0.6, metal=0.3)
-    plain = mat('#5c6240', grime=0.3)
+    plain = mat('#5e5a2c', grime=0.2)
     L, W = 0.49, 0.34
     tracks(body, L - 0.02, 0.255, 0.13, H(5.6), 6, steel, rubber, return_rollers=3)
     box('lower', -L, L - 0.05, -0.2, 0.2, H(1.8), H(5.6), plain, body)
@@ -282,7 +303,7 @@ def m60():
         sphere('headlight', H(0.9), (L - 0.02, s * (W - 0.06), H(8.8)), mat('#c8c4a8', rough=0.3), body)
     box('grille', -L + 0.02, -0.25, -0.2, 0.2, H(8.6), H(9.0), mat('#2a2c24', grime=0.5), body)
     # tall cast turret with pointed nose
-    t = mat(NATO['hull'], camo=NATO['camo'], grime=0.25, scale=44)
+    t = mat(NATO['hull'], camo=NATO['camo'], grime=0.15, scale=36)
     loft('turret', [(-0.29, -0.2), (0.12, -0.22), (0.27, -0.09), (0.27, 0.09), (0.12, 0.22), (-0.29, 0.2)], H(8.6),
          [(-0.27, -0.15), (0.06, -0.17), (0.18, -0.07), (0.18, 0.07), (0.06, 0.17), (-0.27, 0.15)], H(14.2), t, tur, bevel=0.012)
     box('mantlet', 0.22, 0.3, -0.07, 0.07, H(9.6), H(13.4), plain, tur)
@@ -303,8 +324,8 @@ def m60():
 # ---------- ore trucks ----------
 def ore_truck_nato():
     body = root('body')
-    cab = mat('#7b7154', grime=0.3)
-    bodyc = mat('#6f6650', grime=0.38)
+    cab = mat('#6f6c34', camo=['#6a4220', '#1e1d16', '#46602a'], grime=0.15, scale=30)
+    bodyc = mat('#9a8650', grime=0.25)
     rubber = mat('#1d1e19', rough=0.92, grime=0.05)
     steel = mat('#5a5c50', rough=0.55, metal=0.35)
     L, W = 0.6, 0.38
@@ -331,7 +352,7 @@ def ore_truck_nato():
 
 def war_miner():
     body = root('body')
-    hull = mat(PACT['hull'], grime=0.35)
+    hull = mat(PACT['hull'], grime=0.22)
     rust = mat(PACT['rust'], grime=0.5, rough=0.85)
     rubber = mat(PACT['rubber'], rough=0.9, grime=0.1)
     steel = mat(PACT['steel'], rough=0.6, metal=0.3)
@@ -341,6 +362,7 @@ def war_miner():
     # armoured cab at the front-left with vision slits
     loft('cab', rect(0.26, L, -W + 0.02, 0.06), H(6.0), rect(0.28, L - 0.06, -W + 0.04, 0.04), H(15.5), hull, body)
     box('slit', L - 0.065, L - 0.055, -W + 0.08, 0.0, H(12.5), H(13.5), mat('#121310'), body)
+    star('star', (0.43, -W + 0.015, H(10.0)), 0.05, '-y', mat('#c42a1c', rough=0.5, grime=0.05), body)
     # angled ore intake with teeth on the right of the nose
     loft('intake', rect(0.26, L + 0.06, 0.08, W - 0.02), H(2.0), rect(0.26, L - 0.06, 0.1, W - 0.04), H(10.0), mat('#3e3a30', grime=0.5), body)
     for i in range(5):
@@ -366,8 +388,8 @@ def war_miner():
 # ---------- infantry ----------
 def soldier(nato):
     rootobj = root('body')
-    uni = mat('#646c42', camo=['#3e3322', '#2a2a20', '#7a7a4c'], grime=0.15, scale=120) if nato else mat('#867a50', grime=0.25, scale=110)
-    helmet = mat('#4c5834', camo=['#3b2f1f', '#2a2a20'], grime=0.2, scale=140) if nato else mat('#5e6c44', rough=0.5, metal=0.15, grime=0.2)
+    uni = mat('#55692a', camo=['#6a4220', '#1e1d16', '#7c8a3a'], grime=0.1, scale=120) if nato else mat('#a8925a', grime=0.15, scale=110)
+    helmet = mat('#4f5f28', camo=['#6a4220', '#1e1d16'], grime=0.1, scale=140) if nato else mat('#4d8034', rough=0.5, metal=0.15, grime=0.15)
     skin = mat('#c49a78', rough=0.6, grime=0.05)
     boots = mat('#1c1a16', grime=0.05)
     gun = mat('#1c1d18', rough=0.5, metal=0.3, grime=0.05)
@@ -395,6 +417,7 @@ def soldier(nato):
     else:
         dome('helmet', 0.06, 0.058, 0.06, (0.004, 0, sh_z - hip_z + 0.07), helmet, torso)
         cyl('brim', 0.064, 0.008, (0.004, 0, sh_z - hip_z + 0.07), 'z', helmet, torso, verts=14)
+        star('star', (0.06, 0, sh_z - hip_z + 0.095), 0.016, '+x', mat('#d8301e', rough=0.4, grime=0, emit=0.3), torso)
     arms = []
     for s in (1, -1):
         sp = pivot('shoulder', torso, (0, s * 0.1, sh_z - hip_z - 0.015))

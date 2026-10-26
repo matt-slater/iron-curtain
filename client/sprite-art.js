@@ -5,6 +5,7 @@ import { iso } from './art-core.js';
 
 const sheets = new Map();
 const ready = [];
+const SAT = 1.3;
 let loaded = false;
 
 function loadImage(src) {
@@ -54,6 +55,12 @@ function frameCanvas(s, row, k, color) {
   const d = img.data;
   const [tr, tg, tb] = rgb(color);
   for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] === 0) continue;
+    // push colour away from grey so models survive the game's gritty palette
+    const avg = (d[i] + d[i + 1] + d[i + 2]) / 3;
+    d[i] = Math.max(0, Math.min(255, avg + (d[i] - avg) * SAT));
+    d[i + 1] = Math.max(0, Math.min(255, avg + (d[i + 1] - avg) * SAT));
+    d[i + 2] = Math.max(0, Math.min(255, avg + (d[i + 2] - avg) * SAT));
     const a = m[i + 3] / 255 * (m[i] / 255);
     if (a <= 0) continue;
     // keep the rendered shading, swap the neutral grey for the player's colour
