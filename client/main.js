@@ -4,6 +4,9 @@ import { ClientState } from './state.js';
 import { Renderer } from './render.js';
 import { GameUI } from './ui.js';
 import { play } from './audio.js';
+import { loadSprites } from './sprite-art.js';
+
+loadSprites();
 import { MAPS, MAP_INDEX, createMap } from './shared/maps.js';
 import { T } from './shared/map.js';
 import { BIOME } from './render.js';

@@ -3,6 +3,7 @@
 // Warsaw Pact: Soviet green, low dome turrets, rear fuel drums, boat-hulled scouts, khaki uniforms.
 import { UNITS } from './shared/data.js';
 import { iso, shade, hash, prism, rect, octagon, local, barrel, shadow, turretFirst, cylinder, line, poly } from './art-core.js';
+import { hasSprite, drawSprite, spriteRows } from './sprite-art.js';
 
 const OUTLINE_SOFT = 'rgba(6,7,5,0.6)';
 
@@ -392,6 +393,12 @@ function strelaAA(ctx, x, y, dir, tdir, color) {
 }
 
 export function drawVehicle(ctx, look, x, y, dir, tdir, color, faction, time, flags = 0, cargo = 0) {
+  const key = `${look}_${faction}`;
+  if (hasSprite(key)) {
+    drawSprite(ctx, key, 'body', x, y, dir, color);
+    if (spriteRows(key).turret) drawSprite(ctx, key, 'turret', x, y, tdir, color);
+    return;
+  }
   const moving = flags & 2;
   const pactF = faction === 'PACT';
   switch (look) {
@@ -447,6 +454,12 @@ export function drawInfantry(ctx, look, x, y, dir, color, faction, time, moving,
 }
 
 function drawInfantryBody(ctx, look, x, y, dir, color, faction, time, moving, firing) {
+  const key = `${look}_${faction}`;
+  if (hasSprite(key)) {
+    const row = firing ? 'body.fire' : moving ? `body.walk${Math.floor(time * 8 + x * 3.7 + y * 2.3) & 3}` : 'body.idle';
+    drawSprite(ctx, key, row, x, y, dir, color);
+    return;
+  }
   const [sx0, sy0] = iso(x, y);
   const sx = Math.round(sx0), sy = Math.round(sy0);
   ctx.fillStyle = 'rgba(0,0,0,0.38)';

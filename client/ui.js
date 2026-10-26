@@ -3,6 +3,7 @@ import * as D from './shared/data.js';
 import { T } from './shared/map.js';
 import { iso, drawCameo, drawFlag } from './sprites.js';
 import { play, toggleMute } from './audio.js';
+import { onSpritesLoaded } from './sprite-art.js';
 
 const SIDEBAR_W = 264;
 
@@ -28,6 +29,8 @@ export class GameUI {
     this.lastClick = { t: 0, id: null };
     this.rightDown = null;
     this.cameos = new Map();
+    // re-draw sidebar pictures once the rendered sprites arrive
+    onSpritesLoaded(() => { this.cameos.clear(); this.updateSidebar && this.updateSidebar(true); });
     this.gridKey = '';
     this.lastSidebar = 0;
     this.lastMinimap = 0;

@@ -1,3 +1,6 @@
 node_modules/
 *.log
 .DS_Store
+tools/sprites/.tmp/
+tools/sprites/__pycache__/
+tools/sprites/preview.png

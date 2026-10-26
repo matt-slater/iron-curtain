@@ -101,6 +101,20 @@ The server is a single Node process: a static file server plus WebSockets. It re
 - **Fly.io**: `fly launch` (it detects the `Dockerfile`), then `fly deploy`.
 - **Railway**: create a new project from the repo. Railway detects Node and runs `npm start`.
 
+## Rendered 3D sprites
+
+Some units use sprites rendered from 3D models in Blender, in the style of RA2's voxel units. The test batch is the T-72, M60, both ore trucks, NATO riflemen and Pact conscripts. Every other unit uses the hand-coded pixel art, and the game falls back to that art automatically for any unit without a sprite sheet.
+
+- **Models** are built from code in `tools/sprites/models.py`: boxes, lofts, cylinders and domes, with grime and camo materials. Parts tagged `team` are tinted with the player's colour in game.
+- **Rendering:** with Blender installed (`brew install --cask blender`), run:
+  ```bash
+  /Applications/Blender.app/Contents/MacOS/Blender -b -P tools/sprites/render.py -- tank_PACT   # one unit (omit for all)
+  /Applications/Blender.app/Contents/MacOS/Blender -b -P tools/sprites/preview.py               # contact sheet -> tools/sprites/preview.png
+  ```
+  Add `--fast` for quick, noisy test renders.
+- **Output:** `client/sprites/<look>_<faction>.png` plus a `.mask.png` (team-colour areas) and `manifest.json`. Vehicles have 32 directions with a separate turret layer. Infantry have 8 directions with idle, 4 walk frames and a fire frame. The camera matches the game's 2:1 isometric view, and 1 Blender unit is 1 map tile.
+- **Adding a unit:** write a builder in `models.py`, then add it to `UNITS` under the key `<look>_<faction>` used in `client/art-units.js`.
+
 ## Controls
 
 | Action | Input |
