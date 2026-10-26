@@ -163,15 +163,16 @@ export class ClientState {
     }
   }
 
+  // RA2-style shroud: anything on ground you've uncovered stays visible (units, buildings, effects).
   buildingVisible(b) {
-    for (let y = b.ty; y < b.ty + b.h; y++) for (let x = b.tx; x < b.tx + b.w; x++) if (this.visible[y * this.w + x]) return true;
+    for (let y = b.ty; y < b.ty + b.h; y++) for (let x = b.tx; x < b.tx + b.w; x++) if (this.explored[y * this.w + x]) return true;
     return false;
   }
 
   tileVisible(x, y) {
     const tx = Math.floor(x), ty = Math.floor(y);
     if (tx < 0 || ty < 0 || tx >= this.w || ty >= this.h) return false;
-    return !!this.visible[ty * this.w + tx];
+    return !!this.explored[ty * this.w + tx];
   }
 
   // Can the local player see this entity right now?

@@ -61,7 +61,7 @@ All graphics and sounds are generated in code. The game uses no copyrighted asse
   - **Jets** (NATO A-10 Thunderbolt, Pact Su-25 Frogfoot) carry limited ammo (shown as pips under the health bar). They fly strafing passes, return to their landing pad when empty, and rearm there. Each air base has 4 pads, and you can only own 4 jets per base. Right-click your air base with jets selected to send them home.
   - **Helicopters** (AH-1 Cobra, Mi-24 Hind) hover anywhere, ignore terrain, and never need to rearm.
   - **Anti-air:** only AA weapons can hit aircraft at full effect. Use Stinger/Strela-2 teams (both factions), the M163 Vulcan or 9K31 Strela-1 vehicles, the Hawk/SA-2 SAM Site (long range, needs power) and Egypt's ZSU-23-4. Machine guns do light damage to helicopters, but hardly scratch fast jets.
-- **Fog of war**, last-seen enemy buildings, and a radar minimap.
+- **RA2-style shroud** and a radar minimap. Once you uncover an area it stays open, and you can see everything in it, enemy units included. Stealth units still need one of your units close by to be spotted.
 - **Online multiplayer** for 2–4 players: free-for-all or teams, with optional computer players. You can rejoin if you disconnect.
 - **Computer opponent** with easy, normal, and hard difficulty.
 
