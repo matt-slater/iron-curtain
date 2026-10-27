@@ -178,6 +178,17 @@ export class Renderer {
             ctx.beginPath(); ctx.moveTo(a[0] + (cxp - a[0]) * k, a[1] + (cyp - a[1]) * k); ctx.lineTo(b[0] + (cxp - b[0]) * k, b[1] + (cyp - b[1]) * k); ctx.stroke();
           }
           ctx.lineWidth = 1;
+          if (s.brokenBridgeTile(y * s.w + x)) {
+            // wreckage of a destroyed bridge: broken pilings and floating planks
+            for (let k = 0; k < 2; k++) {
+              const bx = px + (R(k, 11) - 0.5) * HW, by = py + HH + (R(12, k) - 0.5) * HH;
+              ctx.fillStyle = '#2a2016'; ctx.fillRect(bx - 2, by - 9, 4, 10);
+              ctx.fillStyle = '#4a3a28'; ctx.fillRect(bx - 2, by - 10, 4, 2);
+            }
+            ctx.strokeStyle = '#3a2c1c'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(px - 10, py + HH + 2 + (v % 5)); ctx.lineTo(px + 6, py + HH - 3); ctx.stroke();
+            ctx.lineWidth = 1;
+          }
         } else if (t === T.ICE) {
           ctx.strokeStyle = 'rgba(230,240,245,0.35)';
           ctx.beginPath(); ctx.moveTo(px - 14 + (v % 9), py + HH - 4); ctx.lineTo(px + 2, py + HH + 1); ctx.lineTo(px + 16, py + HH - 3 + (v % 5)); ctx.stroke();
@@ -229,7 +240,8 @@ export class Renderer {
     const viewL = this.camX - 80, viewR = this.camX + this.vw / this.zoom + 80, viewT = this.camY - 120, viewB = this.camY + this.vh / this.zoom + 60;
     const onScreen = (x, y) => { const [X, Y] = iso(x, y); return X > viewL && X < viewR && Y > viewT && Y < viewB; };
 
-    // terrain chunks (cached per art scale, blitted on whole art pixels)
+    // terrain chunks (cached per art scale, blitted on whole art pixels); bridges falling or being rebuilt invalidate them
+    if (this.terrainVer !== s.terrainVersion) { this.terrainVer = s.terrainVersion; this.chunks.clear(); }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     for (let cy = Math.floor(y0 / CH); cy <= Math.floor(y1 / CH); cy++) {
       for (let cx = Math.floor(x0 / CH); cx <= Math.floor(x1 / CH); cx++) {
@@ -339,6 +351,7 @@ export class Renderer {
     }
     for (const e of air) this.drawUnitEnt(ctx, e, ui);
 
+    this.drawBridgeDamage(ctx, ui);
     this.drawOrderLines(ctx, ui, nowMs);
 
     // projectiles
@@ -611,6 +624,27 @@ export class Renderer {
     for (let k = 0; k < cap; k++) {
       ctx.fillStyle = k < b.occ ? (owner ? owner.color : '#d8d8d0') : '#2a2a26';
       ctx.fillRect(x0 + k * 5, y0, 4, 3);
+    }
+  }
+
+  // Damaged bridges smoke and show a health bar; hovering a bridge with Ctrl held shows it too.
+  drawBridgeDamage(ctx, ui) {
+    const s = this.s;
+    const hov = ui.mouseWorld && (ui.mouse.force || ui.keys.has('ControlLeft') || ui.keys.has('ControlRight')) ? s.bridgeAt(ui.mouseWorld.x, ui.mouseWorld.y) : null;
+    for (const b of s.bridges) {
+      if (b.hp <= 0 || (b.hp >= 100 && b !== hov)) continue;
+      const mid = b.tiles[Math.floor(b.tiles.length / 2)];
+      if (!s.explored[mid]) continue;
+      const mx = mid % s.w + 0.5, my = Math.floor(mid / s.w) + 0.5;
+      if (b.hp < 50 && Math.random() < 0.05) {
+        const t = b.tiles[Math.floor(Math.random() * b.tiles.length)];
+        s.addEffect({ kind: b.hp < 25 ? 'fire' : 'smoke', x: t % s.w + 0.5, y: Math.floor(t / s.w) + 0.5, z: 4, dur: 1600 });
+      }
+      const [sx, sy] = iso(mx, my, 14);
+      const w = 40, f = b.hp / 100;
+      ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(sx - w / 2 - 1, sy - 1, w + 2, 5);
+      ctx.fillStyle = f > 0.6 ? '#3fd84a' : f > 0.3 ? '#e8d43a' : '#e8403a';
+      ctx.fillRect(sx - w / 2, sy, w * f, 3);
     }
   }
 

@@ -1,6 +1,7 @@
 // Client mirror of the game: applies server snapshots, interpolates, tracks fog of war and visual effects.
 import * as D from './shared/data.js';
 import { createMap } from './shared/maps.js';
+import { T, findBridges } from './shared/map.js';
 import { play, speak } from './audio.js';
 
 const SNAP_MS = 1000 / D.TICK_RATE;
@@ -21,6 +22,9 @@ export class ClientState {
     this.biome = this.map.biome || 'temperate';
     this.w = this.map.w; this.h = this.map.h;
     this.terrain = this.map.terrain;
+    // same bridge list (and order) as the server; hp is in percent from snapshots
+    this.bridges = findBridges(this.terrain, this.w, this.h).map((b, i) => ({ ...b, id: i, hp: 100, set: new Set(b.tiles) }));
+    this.terrainVersion = 0;
     this.ore = new Uint16Array(ore);
     this.oreVersion = 0;
     this.players = setup.players.map((p, i) => ({
@@ -91,7 +95,7 @@ export class ClientState {
         const d = D.buildingDef(type, this.players[e.owner]?.faction);
         e.tx = a[4]; e.ty = a[5]; e.w = d.w; e.h = d.h; e.x = e.tx + d.w / 2; e.y = e.ty + d.h / 2;
         e.maxHp = d.hp; e.turret = a[7] / 100; e.flags = a[8];
-        e.repairing = !!(a[8] & 1); e.c4 = !!(a[8] & 2); e.primary = !!(a[8] & 4);
+        e.repairing = !!(a[8] & 1); e.c4 = !!(a[8] & 2); e.primary = !!(a[8] & 4); e.broken = !!(a[8] & 8);
         e.rally = a[9] >= 0 ? { x: a[9] / 10, y: a[10] / 10 } : null;
         e.civ = !!d.civilian;
         e.cap = d.garrison || 0;
@@ -116,6 +120,16 @@ export class ClientState {
       const p = this.players[i];
       p.credits = q.c; p.power = q.pw; p.drain = q.dr; p.defeated = !!q.d; p.blackout = !!q.bo;
       p.superCharge = q.sc; p.queues = q.q; p.stats = q.st;
+    });
+
+    if (s.br) s.br.forEach((hp, i) => {
+      const b = this.bridges[i];
+      if (!b) return;
+      if ((hp > 0) !== (b.hp > 0)) {
+        for (const t of b.tiles) this.terrain[t] = hp > 0 ? T.BRIDGE : T.WATER;
+        this.terrainVersion++;
+      }
+      b.hp = hp;
     });
 
     if (s.ore.length) {
@@ -175,6 +189,18 @@ export class ClientState {
     if (tx < 0 || ty < 0 || tx >= this.w || ty >= this.h) return false;
     return !!this.explored[ty * this.w + tx];
   }
+
+  // Live bridge under a world position, if any.
+  bridgeAt(x, y) {
+    const tx = Math.floor(x), ty = Math.floor(y);
+    if (tx < 0 || ty < 0 || tx >= this.w || ty >= this.h) return null;
+    const i = ty * this.w + tx;
+    if (this.terrain[i] !== T.BRIDGE) return null;
+    return this.bridges.find(b => b.hp > 0 && b.set.has(i)) || null;
+  }
+
+  // Wreckage of a destroyed bridge on this tile?
+  brokenBridgeTile(i) { return this.bridges.some(b => b.hp <= 0 && b.set.has(i)); }
 
   // Can the local player see this entity right now?
   canSee(e) {
@@ -293,6 +319,19 @@ export class ClientState {
           this.addEffect({ kind: 'wreck', x, y, dur: 9000 });
           this.emit('sound', 'boom', x, y);
         } else this.addEffect({ kind: 'corpse', x, y, dur: 4000 });
+        break;
+      }
+      case 'bridge': {
+        const b = this.bridges[ev[1]];
+        if (!b) break;
+        const mid = b.tiles[Math.floor(b.tiles.length / 2)];
+        const mx = mid % this.w + 0.5, my = Math.floor(mid / this.w) + 0.5;
+        if (ev[2]) { this.emit('sound', 'place', mx, my); break; }
+        b.tiles.forEach((t, k) => {
+          if (k % 2 || !this.explored[t]) return;
+          setTimeout(() => this.addEffect({ kind: 'explosion', x: t % this.w + 0.5, y: Math.floor(t / this.w) + 0.5, size: 1.6, dur: 900 }), k * 40);
+        });
+        this.emit('sound', 'bigboom', mx, my);
         break;
       }
       case 'bdie': {

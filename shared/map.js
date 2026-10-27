@@ -16,6 +16,30 @@ export function terrainPassable(t, mc) {
 }
 export function buildable(t) { return t === T.GRASS || t === T.SAND; }
 
+// Destructible bridges: each 4-connected group of bridge tiles is one bridge. Both the server and the
+// clients derive the same list (same order) from the generated terrain.
+export function findBridges(terrain, w, h) {
+  const seen = new Uint8Array(w * h), out = [];
+  for (let s = 0; s < w * h; s++) {
+    if (seen[s] || terrain[s] !== T.BRIDGE) continue;
+    const tiles = [], stack = [s];
+    seen[s] = 1;
+    while (stack.length) {
+      const i = stack.pop();
+      tiles.push(i);
+      const x = i % w, y = (i - x) / w;
+      for (const [nx, ny] of [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]) {
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const j = ny * w + nx;
+        if (!seen[j] && terrain[j] === T.BRIDGE) { seen[j] = 1; stack.push(j); }
+      }
+    }
+    tiles.sort((a, b) => a - b);
+    out.push({ tiles });
+  }
+  return out;
+}
+
 // Widen 1-tile-wide corridors through trees, rocks and rubble so vehicles can pass each other.
 // Decisions are computed from the unmodified terrain each pass (and both walls of a corridor are
 // cleared), so the result stays symmetric on mirrored maps.

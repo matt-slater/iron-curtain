@@ -1,6 +1,6 @@
 // Authoritative game simulation. Runs on the server (online) or in the browser (skirmish).
 import * as D from './data.js';
-import { T, mulberry32, MOVE, terrainPassable, buildable } from './map.js';
+import { T, mulberry32, MOVE, terrainPassable, buildable, findBridges } from './map.js';
 import { createMap } from './maps.js';
 import { PathFinder } from './pathfinding.js';
 
@@ -82,7 +82,92 @@ export class Game {
     for (const d of this.map.derricks) {
       if (this.canPlaceRaw('derrick', d.x, d.y)) this.addBuilding('derrick', -1, d.x, d.y);
     }
+    this.setupBridges();
     this.updateVisibility();
+  }
+
+  // ---------- bridges (RA2 style: destructible, rebuilt by an engineer at either repair hut) ----------
+  setupBridges() {
+    this.bridges = findBridges(this.terrain, this.w, this.h).map((b, i) => ({ ...b, id: i, hp: D.BRIDGE_HP, maxHp: D.BRIDGE_HP, huts: [] }));
+    for (const br of this.bridges) {
+      if (br.tiles.length < 3) continue;
+      // the two tiles farthest apart are the ends; each end gets a hut on the bank beside the road
+      const xy = i => [i % this.w, Math.floor(i / this.w)];
+      let a = br.tiles[0], b = a, best = -1;
+      for (const i of br.tiles) for (const j of br.tiles) {
+        const [x1, y1] = xy(i), [x2, y2] = xy(j), d = (x1 - x2) ** 2 + (y1 - y2) ** 2;
+        if (d > best) { best = d; a = i; b = j; }
+      }
+      const [ax, ay] = xy(a), [bx, by] = xy(b);
+      const len = Math.hypot(bx - ax, by - ay) || 1;
+      const dx = (bx - ax) / len, dy = (by - ay) / len;
+      for (const [ex, ey, sx] of [[ax, ay, -1], [bx, by, 1]]) {
+        const hut = this.placeHut(ex, ey, dx * sx, dy * sx, br);
+        if (hut) br.huts.push(hut.id);
+      }
+    }
+  }
+
+  placeHut(ex, ey, dx, dy, br) {
+    const px = -dy, py = dx;
+    const onBridge = new Set(br.tiles);
+    for (let k = 1; k <= 4; k++) for (const m of [2, -2, 3, -3, 4, -4]) {
+      const x = Math.round(ex + dx * k + px * m), y = Math.round(ey + dy * k + py * m);
+      if (!this.inb(x, y) || onBridge.has(this.idx(x, y)) || !buildable(this.terrain[this.idx(x, y)])) continue;
+      if (!this.canPlaceRaw('bridgehut', x, y)) continue;
+      const h = this.addBuilding('bridgehut', -1, x, y);
+      h.bridge = br.id;
+      return h;
+    }
+    return null;
+  }
+
+  bridgeAt(x, y) {
+    const tx = Math.floor(x), ty = Math.floor(y);
+    if (!this.inb(tx, ty) || this.terrain[this.idx(tx, ty)] !== T.BRIDGE) return null;
+    const i = this.idx(tx, ty);
+    return this.bridges.find(b => b.hp > 0 && b.tiles.includes(i)) || null;
+  }
+
+  damageBridge(br, amount, owner) {
+    if (!br || br.hp <= 0 || amount <= 0) return;
+    br.hp -= amount;
+    if (br.hp > 0) return;
+    br.hp = 0;
+    for (const i of br.tiles) this.terrain[i] = T.WATER;
+    this.bmapVer = (this.bmapVer || 0) + 1;
+    // ground vehicles and infantry on the deck go down with it
+    const onDeck = new Set(br.tiles);
+    for (const e of [...this.entities.values()]) {
+      if (e.kind !== 'u' || UNITS[e.type].air || this.mc(e) === MOVE.AMPHIB) continue;
+      if (onDeck.has(this.idx(Math.floor(e.x), Math.floor(e.y)))) this.kill(e, owner);
+    }
+    for (const id of br.huts) { const h = this.entities.get(id); if (h) h.broken = true; }
+    this.events.push(['bridge', br.id, 0]);
+    for (const p of this.players) this.msg(p.id, 'Bridge destroyed', 'error');
+  }
+
+  repairBridge(br) {
+    if (!br || br.hp > 0) return false;
+    for (const i of br.tiles) this.terrain[i] = T.BRIDGE;
+    br.hp = br.maxHp;
+    this.bmapVer = (this.bmapVer || 0) + 1;
+    for (const id of br.huts) { const h = this.entities.get(id); if (h) h.broken = false; }
+    this.events.push(['bridge', br.id, 1]);
+    return true;
+  }
+
+  // Explosions landing on a bridge deck hurt the bridge.
+  blastBridges(x, y, r, w, owner) {
+    const amt = w.dmg * D.bridgeDamage(w);
+    if (amt <= 0) return;
+    const hit = new Set();
+    const rr = Math.max(0.5, r || 0);
+    for (let ty = Math.floor(y - rr); ty <= Math.floor(y + rr); ty++) for (let tx = Math.floor(x - rr); tx <= Math.floor(x + rr); tx++) {
+      const b = this.bridgeAt(tx + 0.5, ty + 0.5);
+      if (b && Math.hypot(tx + 0.5 - x, ty + 0.5 - y) <= rr + 0.5) hit.add(b);
+    }
+    for (const b of hit) this.damageBridge(b, amt, owner);
   }
 
   // ---------- helpers ----------
@@ -574,7 +659,7 @@ export class Game {
         for (const u of units) {
           const act = D.resolveAction(u.type, t, rel, p.faction);
           if (act === 'attack') { if (this.canTarget(pid, t)) this.setOrder(u, { type: 'attack', target: t.id }); }
-          else if (act === 'capture' || act === 'infiltrate' || act === 'garrison') this.setOrder(u, { type: 'enter', target: t.id, action: act });
+          else if (act === 'capture' || act === 'infiltrate' || act === 'garrison' || act === 'repairBridge') this.setOrder(u, { type: 'enter', target: t.id, action: act });
           else if (act === 'dock' && UNITS[u.type].air) this.setOrder(u, { type: 'rtb', prefer: t.id });
           else if (act === 'dock') this.setOrder(u, { type: 'harvest', state: 'return', ref: t.id, ox: u.x, oy: u.y });
           else if (act === 'deploy') this.deploy(u);
@@ -583,6 +668,17 @@ export class Game {
         if (followers.length) {
           if (t.kind === 'b') this.groupMove(followers, t.x, t.y, 'move');
           else for (const u of followers) if (u !== t) this.setOrder(u, { type: 'follow', target: t.id });
+        }
+        break;
+      }
+      case 'attackBridge': {
+        const br = this.bridgeAt(num(cmd.x), num(cmd.y));
+        if (!br) break;
+        const t = { kind: 'bridge', x: Math.floor(num(cmd.x)) + 0.5, y: Math.floor(num(cmd.y)) + 0.5 };
+        for (const u of units) {
+          const w = this.weapon(u, t);
+          if (UNITS[u.type].air === 'jet' || !w || D.bridgeDamage(w) <= 0) continue;
+          this.setOrder(u, { type: 'attackBridge', bridge: br.id, x: t.x, y: t.y });
         }
         break;
       }
@@ -1041,14 +1137,14 @@ export class Game {
     let tx = t.x, ty = t.y;
     if (w.inacc) { tx += (this.rand() - 0.5) * 2 * w.inacc; ty += (this.rand() - 0.5) * 2 * w.inacc; }
     const dist = Math.hypot(tx - src.x, ty - src.y);
-    const homing = !w.splash;
+    const homing = !w.splash && t.kind !== 'bridge';
     const ang = src.turret ?? src.dir;
     const mx = src.x + Math.cos(ang) * 0.4, my = src.y + Math.sin(ang) * 0.4;
     this.projectiles.push({
       id: this.nextId++, kind: w.proj, owner: src.owner, src: src.id,
       sx: mx, sy: my, x: mx, y: my, tx, ty, t: 0,
       dur: Math.max(DT, dist / D.PROJ_SPEED[w.proj]), w, targetId: homing ? t.id : null,
-      zs: src.alt || 0, zt: t.alt || 0,
+      zs: src.alt || 0, zt: t.alt || 0, bridge: t.kind === 'bridge' ? t.bridge : null,
     });
     this.events.push(['fire', src.id, w.snd || '', w.proj]);
   }
@@ -1068,11 +1164,16 @@ export class Game {
       if (p.nuke) {
         this.events.push(['nuke', p.tx, p.ty]);
         this.areaDamage(p.tx, p.ty, D.NUKE.radius, D.NUKE.dmg, D.NUKE.vs, p.owner, 0, true, D.NUKE);
+        this.blastBridges(p.tx, p.ty, D.NUKE.radius, { ...D.NUKE, proj: 'nuke' }, p.owner);
         continue;
       }
       const w = p.w;
-      if (w.splash) {
+      if (p.bridge != null) {
+        this.blastBridges(p.tx, p.ty, w.splash || 0, w, p.owner);
+        if (w.splash) this.areaDamage(p.tx, p.ty, w.splash, w.dmg, w.vs, p.owner, p.src, false, w);
+      } else if (w.splash) {
         this.areaDamage(p.tx, p.ty, w.splash, w.dmg, w.vs, p.owner, p.src, false, w);
+        this.blastBridges(p.tx, p.ty, w.splash, w, p.owner);
       } else {
         const t = this.entities.get(p.targetId);
         if (t) this.hit(t, w, w.dmg, p.owner, p.src);
@@ -1189,6 +1290,7 @@ export class Game {
 
   damage(e, amount, owner, src) {
     if (e.dead || amount <= 0) return;
+    if (e.kind === 'b' && this.bd(e).invulnerable) return;
     if (e.kind === 'u' && e.deployed) amount *= this.ud(e).deployArmor || 1;
     e.hp -= amount;
     if (src) e.lastAttacker = src;
@@ -1283,6 +1385,12 @@ export class Game {
         }
         if (this.followPath(u)) { this.setOrder(u, { type: 'idle' }); u.guardX = u.x; u.guardY = u.y; }
         this.checkStuck(u, o.x, o.y);
+        break;
+      }
+      case 'attackBridge': {
+        const br = this.bridges[o.bridge];
+        if (!br || br.hp <= 0) { this.setOrder(u, { type: 'idle' }); u.guardX = u.x; u.guardY = u.y; break; }
+        this.engage(u, d, { id: 0, kind: 'bridge', bridge: br.id, x: o.x, y: o.y, alt: 0 }, true);
         break;
       }
       case 'attack': {
@@ -1431,6 +1539,11 @@ export class Game {
         this.msg(u.owner, 'Building captured', 'capture');
         if (prev >= 0) this.msg(prev, 'Building lost to enemy engineer', 'error');
         this.removeEntity(u);
+      } else if (o.action === 'repairBridge' && t.type === 'bridgehut') {
+        if (this.repairBridge(this.bridges[t.bridge])) {
+          this.msg(u.owner, 'Bridge repaired', 'capture');
+          this.removeEntity(u);
+        } else this.setOrder(u, { type: 'idle' });
       } else if (o.action === 'garrison' && D.isCivilian(t.type) && (rel === 'neutral' || rel === 'own')) {
         if (!this.garrison(u, t)) this.setOrder(u, { type: 'idle' });
       } else if (o.action === 'infiltrate' && rel === 'enemy') {
@@ -1707,7 +1820,7 @@ export class Game {
           x.cargo || 0, Math.round((x.alt || 0) * 10), x.ammo || 0]);
       } else {
         e.push([x.id, 1, D.TYPE_INDEX[x.type], x.owner, x.tx, x.ty, Math.ceil(x.hp), Math.round(x.turret * 100),
-          (x.repairing ? 1 : 0) | (x.c4 > 0 ? 2 : 0) | (x.primary ? 4 : 0),
+          (x.repairing ? 1 : 0) | (x.c4 > 0 ? 2 : 0) | (x.primary ? 4 : 0) | (x.broken ? 8 : 0),
           x.rally ? Math.round(x.rally.x * 10) : -1, x.rally ? Math.round(x.rally.y * 10) : -1, x.occ || 0]);
       }
     }
@@ -1725,6 +1838,7 @@ export class Game {
     this.oreDirty.clear();
     const ev = this.events;
     this.events = [];
-    return { t: this.tick, e, pj, pl, ore, ev, over: this.over ? (this.winners || []) : null };
+    const br = this.bridges.map(b => Math.ceil(b.hp / b.maxHp * 100));
+    return { t: this.tick, e, pj, pl, ore, ev, br, over: this.over ? (this.winners || []) : null };
   }
 }

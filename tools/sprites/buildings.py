@@ -601,6 +601,19 @@ def derrick():
     return {'layers': {'body': s.root, 'pump': pump.root}, 'poses': {'pump': pumps}}
 
 
+def bridgehut():
+    s = Site(1, 1)
+    s.pad(1, mat('#5c5a52', grime=0.5, scale=20))
+    s.b(0.18, 0.18, 0.82, 0.82, 1, 11, mat('#a29c86', grime=0.45, scale=30))
+    s.b(0.12, 0.12, 0.88, 0.88, 11, 12.5, mat('#4c4a42', grime=0.3))
+    s.b(0.42, 0.815, 0.58, 0.835, 1, 8, mat('#2a2620'), bevel=0)
+    s.b(0.815, 0.35, 0.835, 0.65, 5, 8, mat('#3e5462', rough=0.2, metal=0.2, grime=0), bevel=0)
+    s.hazard(0.18, 0.84, 0.82, 0.9, 1, 4)
+    s.c(0.3, 0.3, 0.01, 12.5, 22, mat('#2a2a26'), verts=6)
+    s.c(0.3, 0.3, 0.025, 21.5, 23, mat('#e0a030', emit=1.5, grime=0), verts=8)
+    return {'layers': {'body': s.root}}
+
+
 # ---------- civilian buildings per biome ----------
 CIV = {
     'temperate': dict(walls=['#b0a48a', '#9a8e7e', '#8a8a84'], roof='#8a3e2a', flat='#5a5852', pave='#6e6c64', glass='#3e5462', trim='#d8d0bc'),
@@ -748,6 +761,7 @@ SPECS = {
     'samsite_PACT': spec(p_samsite, 2, 2, 36, TURRET),
     'airfield_PACT': spec(lambda: airfield(True), 3, 3, 40),
     'derrick_ALL': spec(derrick, 2, 2, 46),
+    'bridgehut_ALL': spec(bridgehut, 1, 1, 26),
 }
 for _b in CIV:
     SPECS[f'house_{_b}'] = spec(lambda b=_b: civ_house(b), 2, 2, 40)

@@ -232,6 +232,23 @@
   },
   "scale": 2
  },
+ "bridgehut_ALL": {
+  "anchor": [
+   170.0,
+   108.0
+  ],
+  "fh": 184,
+  "frame": 340,
+  "fw": 340,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
  "cobra_NATO": {
   "anchor": [
    120.0,

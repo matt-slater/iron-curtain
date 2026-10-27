@@ -167,6 +167,7 @@ export const BUILDINGS = {
   tenement: { names: ['Apartment Block', 'Apartment Block'], w: 2, h: 3, hp: 1600, cost: 1200, power: 0, sight: 6, cat: null, req: [], civilian: true, garrison: 6, height: 36 },
   tenementB: { names: ['Apartment Block', 'Apartment Block'], w: 3, h: 2, hp: 1600, cost: 1200, power: 0, sight: 6, cat: null, req: [], civilian: true, garrison: 6, height: 36 },
   office: { names: ['Office Block', 'Office Block'], w: 3, h: 3, hp: 2400, cost: 1600, power: 0, sight: 7, cat: null, req: [], civilian: true, garrison: 8, height: 48 },
+  bridgehut: { names: ['Bridge Repair Hut', 'Bridge Repair Hut'], w: 1, h: 1, hp: 1, cost: 0, power: 0, sight: 0, cat: null, req: [], height: 14, invulnerable: true, desc: 'Send an engineer inside to rebuild the destroyed bridge.' },
   derrick: { names: ['Oil Derrick', 'Oil Derrick'], w: 2, h: 2, hp: 600, cost: 1000, power: 0, sight: 3, cat: null, req: [], income: 15, capturable: true, height: 26 },
 };
 
@@ -178,6 +179,8 @@ export const BUILD_RADIUS = 5;
 
 export const ALL_TYPES = [...Object.keys(UNITS), ...Object.keys(BUILDINGS)];
 export const TYPE_INDEX = Object.fromEntries(ALL_TYPES.map((t, i) => [t, i]));
+export const BRIDGE_HP = 1200;
+export function bridgeDamage(w) { return w.proj === 'bullet' || w.proj === 'none' || w.aa && !w.vs.building ? 0 : (w.vs.building || 0); }
 export const PROJ_KINDS = ['bullet', 'shell', 'rocket', 'arty', 'grad', 'missile', 'nuke'];
 export const JET_CRUISE = 48, HELI_CRUISE = 30; // flight altitudes (art pixels)
 
@@ -259,7 +262,7 @@ export function weaponFor(def, target, deployed) {
 }
 
 export function armorOf(e) {
-  if (e.kind === 'b') return 'building';
+  if (e.kind === 'b' || e.kind === 'bridge') return 'building';
   return UNITS[e.type].armor;
 }
 
@@ -278,6 +281,7 @@ export function resolveAction(unitType, target, relation, faction) {
   const isB = target.kind === 'b';
   const civ = isB && isCivilian(target.type);
   if (civ && d.garrison && (relation === 'neutral' || relation === 'own') && occupantsOf(target) < BUILDINGS[target.type].garrison) return 'garrison';
+  if (isB && target.type === 'bridgehut') return unitType === 'engineer' && target.broken ? 'repairBridge' : 'move';
   if (unitType === 'engineer') {
     if (isB && !civ && (relation === 'enemy' || relation === 'neutral') && target.type !== 'silo') return 'capture';
     return relation === 'enemy' ? 'none' : 'follow';

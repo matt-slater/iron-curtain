@@ -61,6 +61,7 @@ All graphics and sounds are generated in code. The game uses no copyrighted asse
   - **Jets** (NATO A-10 Thunderbolt, Pact Su-25 Frogfoot) carry limited ammo (shown as pips under the health bar). They fly strafing passes, return to their landing pad when empty, and rearm there. Each air base has 4 pads, and you can only own 4 jets per base. Right-click your air base with jets selected to send them home.
   - **Helicopters** (AH-1 Cobra, Mi-24 Hind) hover anywhere, ignore terrain, and never need to rearm.
   - **Anti-air:** only AA weapons can hit aircraft at full effect. Use Stinger/Strela-2 teams (both factions), the M163 Vulcan or 9K31 Strela-1 vehicles, the Hawk/SA-2 SAM Site (long range, needs power) and Egypt's ZSU-23-4. Machine guns do light damage to helicopters, but hardly scratch fast jets.
+- **Destructible bridges (RA2 style).** Hold **Ctrl** and right-click a bridge to have selected units shell it. Tanks, artillery, rockets, aircraft and demolitions can damage it; small arms can't. Units on a bridge when it collapses are lost. Each bridge has a small **repair hut** on its banks. Send an engineer into either hut to rebuild the bridge. The huts can't be destroyed.
 - **RA2-style shroud** and a radar minimap. Once you uncover an area it stays open, and you can see everything in it, enemy units included. Stealth units still need one of your units close by to be spotted.
 - **Online multiplayer** for 2–4 players: free-for-all or teams, with optional computer players. You can rejoin if you disconnect.
 - **Computer opponent** with easy, normal, and hard difficulty.
@@ -126,6 +127,8 @@ All units and buildings use sprites rendered from 3D models in Blender, in the s
 | Zoom | Mouse wheel |
 | Deploy MCV / dig in NATO infantry / evacuate a garrison | **D** (or right-click the MCV / your selected garrison). Moving a dug-in unit undeploys it automatically. |
 | Attack-move | **A**, then left-click |
+| Attack a bridge | **Ctrl** + right-click the bridge |
+| Repair a destroyed bridge | Right-click a bridge repair hut with an engineer |
 | Stop | **S** |
 | Control groups | **Ctrl+1–9** (or Alt+1–9) to assign; **1–9** to select (press twice to jump the camera) |
 | Sell / Repair mode | **Z** / **R** (or the sidebar buttons) |
@@ -166,4 +169,5 @@ node test/online.js      # requires a running server; two clients play online
 node test/pathing.js     # two-way army traffic + harvesting on city/jungle maps
 node test/garrison.js    # garrison rules
 node test/air.js         # jets, pads, rearming, helicopters, anti-air
+node test/bridge.js      # destroying and repairing bridges
 ```

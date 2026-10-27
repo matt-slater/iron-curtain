@@ -199,6 +199,7 @@ export class GameUI {
     const p = this.localPos(e);
     this.mouse.x = p.x; this.mouse.y = p.y;
     this.mouse.in = e.target === this.canvas;
+    this.mouse.force = e.ctrlKey || e.metaKey;
     this.mouseWorld = this.r.screenToWorld(p.x, p.y);
     if (this.drag) { this.drag.x1 = p.x; this.drag.y1 = p.y; }
     if (this.rightDown) {
@@ -225,7 +226,7 @@ export class GameUI {
       if (rd.panning) return;
       if (this.placing || this.mode) { this.placing = null; this.setMode(null); return; }
       if (e.target !== this.canvas) return;
-      this.command(p);
+      this.command(p, e.ctrlKey || e.metaKey);
     }
   }
 
@@ -284,7 +285,7 @@ export class GameUI {
     const rel = this.s.relation(target);
     if (rel === 'enemy' && target.kind === 'u' && !this.s.canSee(target)) return null;
     const acts = ids.map(id => D.resolveAction(this.s.ents.get(id).type, target, rel, this.s.me.faction));
-    for (const a of ['capture', 'infiltrate', 'garrison', 'attack', 'dock', 'deploy']) if (acts.includes(a)) return a;
+    for (const a of ['capture', 'infiltrate', 'garrison', 'repairBridge', 'attack', 'dock', 'deploy']) if (acts.includes(a)) return a;
     if (acts.every(a => a === 'none')) return 'none';
     return 'follow';
   }
@@ -296,9 +297,17 @@ export class GameUI {
     for (const id of ids) this.orderLines.push({ id, x: dest.x, y: dest.y, target: dest.target ?? null, attack, t0: now });
   }
 
-  command(p) {
+  command(p, force = false) {
     const w = this.r.screenToWorld(p.x, p.y);
     const ids = this.ownSelectedUnits();
+    // Ctrl + right-click on a bridge: force-fire on it (RA2 style)
+    if (force && ids.length && this.s.bridgeAt(w.x, w.y)) {
+      this.cmd({ c: 'attackBridge', ids, x: w.x, y: w.y });
+      this.pings.push({ x: w.x, y: w.y, attack: true, t0: performance.now() });
+      this.addOrderLines(ids, w, true);
+      play('click');
+      return;
+    }
     if (!ids.length) {
       // right-clicking your own selected garrison evacuates it
       const g = this.r.pick(p.x, p.y);
@@ -430,8 +439,10 @@ export class GameUI {
       else if (this.rightDown && this.rightDown.panning) cursor = 'grabbing';
       else if (t) {
         const act = this.actionFor(t);
-        cursor = act === 'attack' ? 'crosshair' : act === 'capture' || act === 'infiltrate' ? 'cell' : act === 'none' ? 'not-allowed' : act === 'deploy' || act === 'garrison' ? 'copy' : 'pointer';
+        cursor = act === 'attack' ? 'crosshair' : act === 'capture' || act === 'infiltrate' || act === 'repairBridge' ? 'cell' : act === 'none' ? 'not-allowed' : act === 'deploy' || act === 'garrison' ? 'copy' : 'pointer';
         if (!act && t.kind === 'b' && t.civ && t.owner === this.s.you && t.occ && this.selection.has(t.id)) cursor = 'alias';
+      } else if (this.ownSelectedUnits().length && (this.mouse.force || this.keys.has('ControlLeft') || this.keys.has('ControlRight')) && this.s.bridgeAt(this.mouseWorld.x, this.mouseWorld.y)) {
+        cursor = 'crosshair';
       } else if (this.ownSelectedUnits().length) {
         const tx = Math.floor(this.mouseWorld.x), ty = Math.floor(this.mouseWorld.y);
         const ok = tx >= 0 && ty >= 0 && tx < this.s.w && ty < this.s.h;
@@ -644,6 +655,7 @@ export class GameUI {
 
   drawMinimap() {
     const s = this.s, ctx = this.miniCtx;
+    if (this.miniTerrainVer !== s.terrainVersion) { this.miniTerrainVer = s.terrainVersion; this.buildMiniTerrain(); }
     const powered = s.me.power >= s.me.drain && !s.me.blackout;
     const radar = (s.counts.radar || 0) > 0 && powered;
     document.getElementById('radar-off').style.display = radar ? 'none' : 'flex';

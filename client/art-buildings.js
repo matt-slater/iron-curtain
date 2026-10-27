@@ -5,7 +5,7 @@ import { iso, shade, hash, box, flat, gable, arch, sawtooth, cylinder, cone, dom
 import { hasSprite, drawSprite, spriteMeta, spriteRows } from './sprite-art.js';
 
 // Rendered building sheets are keyed <type>_<faction>, or <type>_<biome> for civilian buildings.
-export function buildingKey(type, faction) { return type === 'derrick' ? 'derrick_ALL' : `${type}_${faction}`; }
+export function buildingKey(type, faction) { return type === 'derrick' || type === 'bridgehut' ? `${type}_ALL` : `${type}_${faction}`; }
 
 const N = { wall: '#7b8176', wall2: '#686e64', roof: '#454b4b', pad: '#5c5e57', glass: '#3e5462', olive: '#4e5634', crane: '#c09a2a' };
 const P = { wall: '#857a66', wall2: '#6d6352', roof: '#5e3e2c', pad: '#55514a', brick: '#6a3b2c', red: '#9e2a1e', rust: '#7a4a2e', green: '#4a5636' };
@@ -380,6 +380,13 @@ export function drawBuilding(ctx, type, faction, color, seed = 7) {
     return;
   }
   if (type === 'derrick') return derrick(ctx, color, seed);
+  if (type === 'bridgehut') {
+    box(ctx, 0.15, 0.15, 0.85, 0.85, 0, 11, '#8a8676', null, 0.6, seed);
+    flat(ctx, 0.1, 0.1, 0.9, 0.9, 11.5, '#4c4a42');
+    const [dx, dy] = iso(0.5, 0.85, 0); ctx.fillStyle = '#2a2620'; ctx.fillRect(Math.round(dx - 2), Math.round(dy - 8), 5, 7);
+    hazard(ctx, 0.15, 0.85, 0.85, 0.92, 0.5, 4);
+    return;
+  }
   if (type === 'airfield') return airfield(ctx, faction === 'PACT', color, seed);
   if (type === 'samsite') return samsite(ctx, faction === 'PACT', color, seed);
   if (BUILDINGS[type].civilian) return drawCivilian(ctx, type, faction, color, seed);
