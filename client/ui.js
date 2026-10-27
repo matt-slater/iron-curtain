@@ -89,7 +89,8 @@ export class GameUI {
     this.on(window, 'mousemove', e => this.mouseMove(e));
     this.on(window, 'mouseup', e => this.mouseUp(e));
     this.on(cv, 'mouseleave', () => { this.mouse.in = false; });
-    this.on(cv, 'wheel', e => { e.preventDefault(); this.r.setZoom(this.r.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1), e.offsetX, e.offsetY); }, { passive: false });
+    // fixed camera height like RA2: the wheel does nothing (and must not scroll the page)
+    this.on(cv, 'wheel', e => e.preventDefault(), { passive: false });
     this.on(window, 'keydown', e => this.keyDown(e));
     this.on(window, 'keyup', e => this.keys.delete(e.code));
     this.on(window, 'blur', () => this.keys.clear());

@@ -4,7 +4,7 @@ A browser real-time strategy game inspired by *Command & Conquer: Red Alert 2*, 
 
 **Look and feel**
 
-- **Pixel art.** The world is drawn at low resolution, mapped to a dark, desaturated palette with ordered dithering, and scaled up with hard pixel edges. Zoom snaps to pixel-art levels.
+- **Pixel art.** The world is drawn at low resolution, mapped to a dark, desaturated palette with ordered dithering, and scaled up with hard pixel edges.
 - **Faction designs.**
   - NATO uses clean prefab buildings, quonset huts, hangars, radomes, sandbags, woodland camo, and angular wedge-turret tanks.
   - The Warsaw Pact uses brutalist stained concrete, brick, rust, red stars, smokestacks, lattice radar, dome-turret tanks with rear fuel drums, and boat-hulled scout cars.
@@ -128,7 +128,6 @@ All units and buildings use sprites rendered from 3D models in Blender, in the s
 | Select all of a type on screen | Double-click a unit, or **Q** with units selected |
 | Move / attack / capture / harvest | Right-click |
 | Scroll | Right-drag, middle-drag, arrow keys, or screen edges |
-| Zoom | Mouse wheel |
 | Deploy MCV / dig in NATO infantry / evacuate a garrison | **D** (or right-click the MCV / your selected garrison). Moving a dug-in unit undeploys it automatically. |
 | Attack-move | **A**, then left-click |
 | Attack a bridge | **Ctrl** + right-click the bridge |
