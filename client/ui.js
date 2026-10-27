@@ -30,7 +30,10 @@ export class GameUI {
     this.rightDown = null;
     this.cameos = new Map();
     // re-draw sidebar pictures once the rendered sprites arrive
-    onSpritesLoaded(() => { this.cameos.clear(); this.updateSidebar && this.updateSidebar(true); });
+    onSpritesLoaded(() => {
+      clearTimeout(this.cameoRefresh);
+      this.cameoRefresh = setTimeout(() => { this.cameos.clear(); this.updateSidebar(true); }, 150);
+    });
     this.gridKey = '';
     this.lastSidebar = 0;
     this.lastMinimap = 0;

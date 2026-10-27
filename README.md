@@ -103,7 +103,7 @@ The server is a single Node process: a static file server plus WebSockets. It re
 
 ## Rendered 3D sprites
 
-Some units use sprites rendered from 3D models in Blender, in the style of RA2's voxel units. The test batch is the T-72, M60, both ore trucks, NATO riflemen and Pact conscripts. Every other unit uses the hand-coded pixel art, and the game falls back to that art automatically for any unit without a sprite sheet.
+All units use sprites rendered from 3D models in Blender, in the style of RA2's voxel units: 21 vehicle and aircraft types plus 15 infantry looks, for both factions. Each sprite sheet downloads the first time its unit appears. Until it arrives, or if a sheet is missing, the game shows the hand-coded pixel art.
 
 - **Models** are built from code in `tools/sprites/models.py`: boxes, lofts, cylinders and domes, with grime and camo materials. Parts tagged `team` are tinted with the player's colour in game.
 - **Rendering:** with Blender installed (`brew install --cask blender`), run:

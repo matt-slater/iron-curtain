@@ -3,32 +3,41 @@
 // .mask.png marking team-colour pixels, which are tinted per player the first time a frame is drawn.
 import { iso } from './art-core.js';
 
-const sheets = new Map();
-const ready = [];
+const sheets = new Map();  // loaded sheets
+const manifest = new Map(); // everything that exists on the server
+const pending = new Set();
+const listeners = [];
 const SAT = 1.3;
-let loaded = false;
 
 function loadImage(src) {
   return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
 }
 
+// Only the small manifest is fetched up front; each sheet downloads the first time its unit is drawn.
 export async function loadSprites() {
   try {
     const man = await (await fetch('sprites/manifest.json', { cache: 'no-cache' })).json();
-    await Promise.all(Object.entries(man).map(async ([key, meta]) => {
-      try {
-        const [img, mask] = await Promise.all([loadImage(`sprites/${key}.png`), loadImage(`sprites/${key}.mask.png`)]);
-        sheets.set(key, { meta, img, mask, cache: new Map() });
-      } catch { /* missing sheet: keep procedural art */ }
-    }));
-  } catch { /* no manifest */ }
-  loaded = true;
-  for (const fn of ready.splice(0)) fn();
+    for (const [key, meta] of Object.entries(man)) manifest.set(key, meta);
+  } catch { /* no manifest: everything keeps its procedural art */ }
 }
 
-export function onSpritesLoaded(fn) { if (loaded) fn(); else ready.push(fn); }
+function request(key) {
+  if (pending.has(key) || !manifest.has(key)) return;
+  pending.add(key);
+  Promise.all([loadImage(`sprites/${key}.png`), loadImage(`sprites/${key}.mask.png`)]).then(([img, mask]) => {
+    sheets.set(key, { meta: manifest.get(key), img, mask, cache: new Map() });
+    for (const fn of listeners) fn(key);
+  }).catch(() => { /* keep procedural art */ });
+}
 
-export function hasSprite(key) { return sheets.has(key); }
+// Called whenever a sheet finishes loading (used to refresh sidebar pictures).
+export function onSpritesLoaded(fn) { listeners.push(fn); }
+
+export function hasSprite(key) {
+  if (sheets.has(key)) return true;
+  request(key);
+  return false;
+}
 
 function rgb(hex) {
   const n = parseInt(hex.slice(1), 16);
