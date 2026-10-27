@@ -59,6 +59,20 @@ select option, select optgroup { background: #000; color: var(--ph); }
 .help b { color: var(--ph); font-weight: normal; }
 
 .lobby-box { min-width: 760px; }
+#browser { align-items: center; justify-content: center; background: radial-gradient(ellipse at center, var(--ph-dark) 0%, var(--bg) 60%, #000 100%); }
+.browser-box { min-width: 820px; }
+.browser-status { color: var(--ph-dim); font-size: 18px; }
+.browser-name { display: flex; gap: 8px; align-items: center; }
+.browser-name input { flex: 1; max-width: 320px; }
+#rooms { border-collapse: collapse; width: 100%; }
+#rooms th { text-align: left; color: var(--ph-dim); font-weight: normal; border-bottom: 1px dashed var(--ph-dim); padding: 2px 6px; }
+#rooms td { padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+#rooms tr.playing td { color: var(--ph-dim); }
+#rooms td button { padding: 0 8px; font-size: 17px; }
+.rooms-empty { color: var(--ph-dim); text-align: center; padding: 14px 0; }
+.browser-buttons { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.browser-buttons .join-row { display: flex; gap: 6px; }
+.browser-buttons #code-input { width: 90px; }
 .lobby-box h2 { margin: 0; font-weight: normal; font-size: 34px; letter-spacing: 4px; }
 .lobby-box h2::before { content: '>> '; color: var(--ph-dim); }
 .code { font-size: 20px; color: var(--ph-dim); }

@@ -67,7 +67,7 @@ All graphics and sounds are generated in code. The game uses no copyrighted asse
 - **Tech airport and paradrops (RA2 style).** Each map has a neutral **Airport** midway between the bases (on maps with water in the middle, a mirrored pair). Capture it with an engineer, and a **PARADROP** button appears under the sidebar. It charges for 3 minutes; then click it and click anywhere on the map. A transport plane flies over and drops your faction's infantry: 6 NATO riflemen or 9 Pact conscripts. Troopers can't be shot while falling. Enemies can recapture the airport with their own engineer, and it doesn't count as a base building for victory. The computer opponent goes after it too.
 - **Destructible bridges (RA2 style).** Hold **Ctrl** and right-click a bridge to have selected units shell it. Tanks, artillery, rockets, aircraft and demolitions can damage it; small arms can't. Units on a bridge when it collapses are lost. Each bridge has a small **repair hut** on its banks. Send an engineer into either hut to rebuild the bridge. The huts can't be destroyed.
 - **RA2-style shroud** and a radar minimap. Once you uncover an area it stays open, and you can see everything in it, enemy units included. Stealth units still need one of your units close by to be spotted.
-- **Online multiplayer** for 2–4 players: free-for-all or teams, with optional computer players. You can rejoin if you disconnect.
+- **Online multiplayer** for 2–4 players, with an online lobby that lists open rooms live: free-for-all or teams, with optional computer players. You can rejoin if you disconnect.
 - **Computer opponent** with easy, normal, and hard difficulty.
 
 ## Run locally
@@ -81,7 +81,7 @@ npm start
 
 Open http://localhost:8080. Skirmish games run entirely in your browser. Online games run on the server.
 
-To play with a friend on your local network, have them open `http://<your-ip>:8080`. Click **Host Online Game**, share the 4-letter room code (or the `?room=CODE` link), and your friend clicks **Join**.
+To play with a friend on your local network, have them open `http://<your-ip>:8080`. Both of you click **Online Lobby** and enter a callsign. One player clicks **Create Room**; the room then appears in everyone's lobby list (with host, map, player count and status), and your friend clicks **Join** next to it. You can also join by typing the 4-letter code, or by opening the `?room=CODE` invite link.
 
 ## Deploy to GitHub Pages
 

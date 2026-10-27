@@ -25,11 +25,7 @@ DEFCON ............... <span class="blink">2</span></pre>
     <div class="subtitle">GLOBAL THERMONUCLEAR STRATEGY SIMULATION</div>
     <label>&gt; IDENTIFY COMMANDER: <input id="name-input" maxlength="20" placeholder="COMMANDER" autocomplete="off"></label>
     <button id="btn-skirmish" class="big">1. SKIRMISH VS COMPUTER</button>
-    <button id="btn-create" class="big">2. HOST ONLINE GAME</button>
-    <div class="join-row">
-      <input id="code-input" maxlength="4" placeholder="CODE" autocomplete="off">
-      <button id="btn-join">3. JOIN ONLINE GAME</button>
-    </div>
+    <button id="btn-online" class="big">2. ONLINE LOBBY</button>
     <div id="menu-error" class="error"></div>
     <details class="help">
       <summary>HELP.TXT</summary>
@@ -48,6 +44,29 @@ DEFCON ............... <span class="blink">2</span></pre>
         <li>Engineers capture <b>Oil Derricks</b> for extra income. <b>Enter</b>: chat. <b>M</b>: mute. Hover a unit to see its name; hold <b>Alt</b> to label every unit.</li>
       </ul>
     </details>
+  </div>
+</section>
+
+<!-- Online room browser -->
+<section id="browser" class="screen">
+  <div class="lobby-box browser-box">
+    <h2>ONLINE LOBBY</h2>
+    <div id="browser-status" class="browser-status">CONNECTING TO SERVER...</div>
+    <label class="browser-name">&gt; CALLSIGN: <input id="browser-name" maxlength="20" placeholder="COMMANDER" autocomplete="off"></label>
+    <table id="rooms">
+      <thead><tr><th>ROOM</th><th>HOST</th><th>THEATER</th><th>PLAYERS</th><th>STATUS</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="rooms-empty" class="rooms-empty">NO OPEN GAMES. CREATE ONE AND SEND YOUR FRIEND THE CODE.</div>
+    <div class="lobby-buttons browser-buttons">
+      <button id="btn-create">+ CREATE ROOM</button>
+      <div class="join-row">
+        <input id="code-input" maxlength="4" placeholder="CODE" autocomplete="off">
+        <button id="btn-join">JOIN BY CODE</button>
+      </div>
+      <button id="btn-browser-back">BACK</button>
+    </div>
+    <div id="browser-error" class="error"></div>
   </div>
 </section>
 

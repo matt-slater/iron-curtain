@@ -28,12 +28,16 @@ function setTheme(faction) {
   document.body.classList.toggle('pact', faction === 'PACT');
 }
 
+// The name is entered on the main menu or in the online lobby; both fields stay in sync.
 function playerName() {
-  const n = $('name-input').value.trim() || 'Commander';
+  const field = $('browser').classList.contains('active') ? $('browser-name') : $('name-input');
+  const n = field.value.trim() || 'Commander';
   localStorage.setItem('rts-name', n);
+  $('name-input').value = $('browser-name').value = n;
   return n;
 }
-$('name-input').value = localStorage.getItem('rts-name') || '';
+$('name-input').value = $('browser-name').value = localStorage.getItem('rts-name') || '';
+for (const id of ['name-input', 'browser-name']) $(id).addEventListener('input', e => { localStorage.setItem('rts-name', e.target.value.trim()); });
 
 function connectRemote() {
   const url = serverUrl();
@@ -45,9 +49,54 @@ function connectRemote() {
       if (game) game.ui.addMessage(msg, 'sys');
       $('menu-error').textContent = msg;
       $('lobby-error').textContent = msg;
+      $('browser-error').textContent = msg;
+      $('browser-status').textContent = 'OFFLINE';
     }
   }, url);
   return true;
+}
+
+// ---------- online room browser ----------
+function openBrowser() {
+  $('browser-error').textContent = '';
+  $('browser-status').textContent = 'CONNECTING TO SERVER... (a sleeping free server can take ~30s to wake)';
+  $('rooms').querySelector('tbody').innerHTML = '';
+  $('rooms-empty').style.display = 'none';
+  show('browser');
+  if (!connectRemote()) { $('browser-error').textContent = $('menu-error').textContent; $('browser-status').textContent = 'OFFLINE'; return; }
+  conn.send({ t: 'browse' });
+}
+
+function renderRooms(m) {
+  $('browser-status').textContent = `CONNECTED  //  ${m.online} COMMANDER${m.online === 1 ? '' : 'S'} ONLINE`;
+  const tb = $('rooms').querySelector('tbody');
+  tb.innerHTML = '';
+  $('rooms-empty').style.display = m.rooms.length ? 'none' : '';
+  for (const r of m.rooms) {
+    const tr = document.createElement('tr');
+    const full = r.humans + r.ai >= r.max && r.ai === 0;
+    tr.className = r.status;
+    for (const v of [r.code, r.host, r.map, `${r.humans}${r.ai ? ' + ' + r.ai + ' AI' : ''} / ${r.max}`, r.status === 'open' ? (full ? 'FULL' : 'OPEN') : 'IN BATTLE']) {
+      const td = document.createElement('td'); td.textContent = v; tr.appendChild(td);
+    }
+    const td = document.createElement('td');
+    const mine = session && session.code === r.code;
+    if (r.status === 'open' && !full || mine) {
+      const b = document.createElement('button');
+      b.textContent = mine && r.status !== 'open' ? 'REJOIN' : 'JOIN';
+      b.onclick = () => joinRoom(r.code);
+      td.appendChild(b);
+    }
+    tr.appendChild(td);
+    tb.appendChild(tr);
+  }
+}
+
+function joinRoom(code) {
+  play('click');
+  if (!conn || !(conn instanceof RemoteConnection)) { if (!connectRemote()) return; }
+  const token = session && session.code === code ? session.token : undefined;
+  conn.send({ t: 'join', code, name: playerName(), token });
 }
 
 $('btn-skirmish').onclick = () => {
@@ -58,31 +107,36 @@ $('btn-skirmish').onclick = () => {
   conn.send({ t: 'create', name: playerName() });
   conn.send({ t: 'addAI' });
 };
+$('btn-online').onclick = () => { play('click'); playerName(); openBrowser(); };
+$('btn-browser-back').onclick = () => {
+  play('click');
+  if (conn) { conn.close(); conn = null; }
+  show('menu');
+};
 $('btn-create').onclick = () => {
   play('click');
-  if (!connectRemote()) return;
+  if (!conn || !(conn instanceof RemoteConnection)) { if (!connectRemote()) return; }
   conn.send({ t: 'create', name: playerName() });
 };
 $('btn-join').onclick = () => {
-  play('click');
   const code = $('code-input').value.trim().toUpperCase();
-  if (code.length !== 4) { $('menu-error').textContent = 'Enter the 4-letter room code.'; return; }
-  if (!connectRemote()) return;
-  const token = session && session.code === code ? session.token : undefined;
-  conn.send({ t: 'join', code, name: playerName(), token });
+  if (code.length !== 4) { $('browser-error').textContent = 'Enter the 4-letter room code.'; return; }
+  joinRoom(code);
 };
 $('code-input').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-join').click(); });
 
-// Auto-join via ?room=CODE links
+// Invite links (?room=CODE) open the online lobby with the code filled in
 const urlRoom = new URLSearchParams(location.search).get('room');
-if (urlRoom) $('code-input').value = urlRoom.toUpperCase();
+if (urlRoom) { $('code-input').value = urlRoom.toUpperCase(); setTimeout(openBrowser, 0); }
 
 $('btn-leave').onclick = () => {
+  const online = lobby && !lobby.local;
   if (conn) { conn.send({ t: 'leave' }); conn.close(); conn = null; }
   sessionStorage.removeItem('rts-session');
   session = null;
   lobby = null;
-  show('menu');
+  // leaving an online room goes back to the room list
+  if (online) openBrowser(); else show('menu');
 };
 $('btn-addai').onclick = () => conn.send({ t: 'addAI' });
 $('btn-start').onclick = () => conn.send({ t: 'start' });
@@ -121,7 +175,11 @@ function onMessage(m) {
       if (game) game.ui.addChat(m.name, m.text, m.system, m.color);
       lobbyChat(m);
       break;
+    case 'rooms':
+      if ($('browser').classList.contains('active')) renderRooms(m);
+      break;
     case 'error':
+      $('browser-error').textContent = m.text;
       $('menu-error').textContent = m.text;
       $('lobby-error').textContent = m.text;
       if (game) game.ui.addMessage(m.text, 'sys');
@@ -345,7 +403,7 @@ function quitToMenu() {
   show('menu');
 }
 
-// Reconnect to an in-progress online game after a page refresh.
+// Reconnect to an in-progress online game after a page refresh: the room shows a REJOIN button.
 if (session && !urlRoom) {
   $('code-input').value = session.code;
 }
