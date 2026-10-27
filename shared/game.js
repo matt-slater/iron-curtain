@@ -1,6 +1,7 @@
 // Authoritative game simulation. Runs on the server (online) or in the browser (skirmish).
 import * as D from './data.js';
 import { T, mulberry32, MOVE, terrainPassable, buildable, findBridges } from './map.js';
+import { flatArea } from './elevation.js';
 import { createMap } from './maps.js';
 import { PathFinder } from './pathfinding.js';
 
@@ -32,6 +33,7 @@ export class Game {
     this.map = createMap({ ...setup, mapSize: size }, np);
     this.w = this.map.w; this.h = this.map.h;
     this.terrain = this.map.terrain;
+    this.hgt = this.map.hgt;
     this.oreBase = this.map.ore;
     this.ore = new Uint16Array(this.map.ore);
     this.bmap = new Int32Array(this.w * this.h);
@@ -362,6 +364,8 @@ export class Game {
       const t = this.terrain[i];
       if (!buildable(t)) return false;
     }
+    // only on flat ground, all at one level
+    if (!flatArea(this.hgt, this.w, tx, ty, d.w, d.h)) return false;
     for (const e of this.entities.values()) {
       if (e.kind !== 'u' || e.id === ignoreId || UNITS[e.type].air) continue;
       if (e.x >= tx - 0.1 && e.x <= tx + d.w + 0.1 && e.y >= ty - 0.1 && e.y <= ty + d.h + 0.1) return false;
@@ -373,7 +377,7 @@ export class Game {
     if (!this.canPlaceRaw(type, tx, ty)) return false;
     const d = BUILDINGS[type];
     for (const e of this.entities.values()) {
-      if (e.kind !== 'b' || e.owner !== pid || e.type === 'derrick' || BUILDINGS[e.type].tech || D.isCivilian(e.type)) continue;
+      if (e.kind !== 'b' || !D.extendsBase(e, pid, o => this.isAlly(pid, o))) continue;
       const gx = Math.max(e.tx - (tx + d.w), tx - (e.tx + e.w), 0);
       const gy = Math.max(e.ty - (ty + d.h), ty - (e.ty + e.h), 0);
       if (Math.max(gx, gy) <= D.BUILD_RADIUS) return true;

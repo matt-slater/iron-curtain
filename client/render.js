@@ -1,7 +1,13 @@
 // Isometric canvas renderer.
 import * as D from './shared/data.js';
 import { T, buildable } from './shared/map.js';
-import { HW, HH, iso, shade, buildingSprite, drawBuildingDynamic, drawUnit, drawTree, drawRock, drawRuin } from './sprites.js';
+
+// Terrain elevation: every world-space projection in this file sits on the ground surface.
+let HG = null, HGW = 0, HGH = 0;
+const gz = (x, y) => groundZ(HG, HGW, HGH, x, y);
+const iso = (x, y, z = 0) => isoFlat(x, y, z + gz(x, y));
+import { HW, HH, iso as isoFlat, shade, buildingSprite, drawBuildingDynamic, drawUnit, drawTree, drawRock, drawRuin } from './sprites.js';
+import { groundZ, flatArea, LEVEL_PX } from './shared/elevation.js';
 import { drawTransport } from './art-units.js';
 import { Palette } from './palette.js';
 
@@ -73,9 +79,16 @@ export class Renderer {
     this.post = c;
   }
 
+  // Inverse projection onto the (raised) ground surface: a few fixed-point steps on the height.
   screenToWorld(sx, sy) {
-    const X = sx / this.zoom + this.camX, Y = sy / this.zoom + this.camY;
-    return { x: (X / HW + Y / HH) / 2, y: (Y / HH - X / HW) / 2 };
+    HG = this.s.hgt; HGW = this.s.w; HGH = this.s.h;
+    const X = sx / this.zoom + this.camX, Y0 = sy / this.zoom + this.camY;
+    let x = (X / HW + Y0 / HH) / 2, y = (Y0 / HH - X / HW) / 2;
+    for (let k = 0; k < 4 && HG; k++) {
+      const Y = Y0 + gz(x, y);
+      x = (X / HW + Y / HH) / 2; y = (Y / HH - X / HW) / 2;
+    }
+    return { x, y };
   }
   worldToScreen(x, y, z = 0) {
     const [X, Y] = iso(x, y, z);
@@ -120,6 +133,7 @@ export class Renderer {
       case T.TREE: return shade(B.tree, 0.92 + n * 0.05 + low);
       case T.ICE: return shade(B.ice, 0.95 + n * 0.05 + low);
       case T.RUIN: return shade(B.rubble, 0.92 + n * 0.06 + low);
+      case T.CLIFF: return shade(B.rock, 0.78 + n * 0.08 + low);
       default: return shade(B.ground, 0.92 + n * 0.06 + low * 1.4);
     }
   }
@@ -128,22 +142,41 @@ export class Renderer {
     const s = this.s;
     const c = document.createElement('canvas');
     const W = CH * 2 * HW, H = CH * 2 * HH;
-    c.width = Math.ceil((W + 2) * S); c.height = Math.ceil((H + 2) * S);
+    const TOP = 3 * LEVEL_PX + 4; // headroom for raised ground
+    c.width = Math.ceil((W + 2) * S); c.height = Math.ceil((H + 2 + TOP) * S);
     const ctx = c.getContext('2d');
     const ox = (cx - cy) * CH * HW, oy = (cx + cy) * CH * HH;
     ctx.scale(S, S);
     // the chunk's leftmost point is at tile (cx*CH, cy*CH + CH)
-    ctx.translate(-(ox - CH * HW) + 1, -oy + 1);
+    ctx.translate(-(ox - CH * HW) + 1, -oy + 1 + TOP);
+    const HGT = s.hgt, CW = s.w + 1;
+    const cz = (x, y) => (HGT ? HGT[y * CW + x] * LEVEL_PX : 0);
     const dot = (x, y, w, h, col) => { ctx.fillStyle = col; ctx.fillRect(x, y, w / S, h / S); };
     for (let y = cy * CH; y < Math.min(s.h, cy * CH + CH); y++) {
       for (let x = cx * CH; x < Math.min(s.w, cx * CH + CH); x++) {
-        const [px, py] = iso(x, y);
+        const [px, py] = isoFlat(x, y);
         const t = s.terrain[y * s.w + x];
-        ctx.fillStyle = this.tileColor(x, y);
+        const za = cz(x, y), zb = cz(x + 1, y), zc = cz(x + 1, y + 1), zd = cz(x, y + 1);
+        // slope lighting: light comes from the upper left of the screen (the -x side)
+        const gx = (zb + zc - za - zd) / (2 * LEVEL_PX), gy = (zc + zd - za - zb) / (2 * LEVEL_PX);
+        const avg = (za + zb + zc + zd) / 4;
+        const lit = Math.max(0.55, Math.min(1.35, 1 + 0.16 * gx - 0.1 * gy)) * (1 + 0.035 * avg / LEVEL_PX);
+        ctx.fillStyle = shade(this.tileColor(x, y), lit);
         ctx.beginPath();
-        ctx.moveTo(px, py - 0.7); ctx.lineTo(px + HW + 0.7, py + HH); ctx.lineTo(px, py + 2 * HH + 0.7); ctx.lineTo(px - HW - 0.7, py + HH);
+        ctx.moveTo(px, py - za - 0.7); ctx.lineTo(px + HW + 0.7, py + HH - zb); ctx.lineTo(px, py + 2 * HH - zc + 0.7); ctx.lineTo(px - HW - 0.7, py + HH - zd);
         ctx.closePath(); ctx.fill();
         ctx.save(); ctx.clip();
+        if (t === T.CLIFF) {
+          // rock strata running along the cliff face
+          ctx.strokeStyle = 'rgba(20,18,14,0.45)'; ctx.lineWidth = 1.5;
+          for (let k = 1; k < 4; k++) {
+            const f = k / 4;
+            ctx.beginPath(); ctx.moveTo(px - HW, py + HH - zd + (za - zd) * 0 - f * (Math.max(za, zb, zc, zd) - Math.min(za, zb, zc, zd)) + 6 * f);
+            ctx.lineTo(px + HW, py + HH - zb - f * (Math.max(za, zb, zc, zd) - Math.min(za, zb, zc, zd)) + 6 * f); ctx.stroke();
+          }
+          ctx.lineWidth = 1;
+        }
+        ctx.translate(0, -avg);
         const v = s.map.variant[y * s.w + x];
         const R = (k, m) => hash(x * 31 + k, y * 17 + m);
         if (t === T.GRASS || t === T.TREE) {
@@ -212,13 +245,14 @@ export class Renderer {
         ctx.restore();
       }
     }
-    c.ox = ox - CH * HW - 1; c.oy = oy - 1;
+    c.ox = ox - CH * HW - 1; c.oy = oy - 1 - TOP;
     return c;
   }
 
   // ---------- main draw ----------
   draw(now, ui) {
     const s = this.s;
+    HG = s.hgt; HGW = s.w; HGH = s.h;
     const ctx = this.lctx;
     this.time = now / 1000;
     s.interpolate(now);
@@ -334,9 +368,11 @@ export class Renderer {
     for (const o of objs) {
       if (o.k === 't') {
         const v = s.map.variant[o.y * s.w + o.x];
+        ctx.save(); ctx.translate(0, -gz(o.x + 0.5, o.y + 0.5));
         if (o.t === T.TREE) drawTree(ctx, o.x + 0.5 + (v % 5 - 2) * 0.05, o.y + 0.5, v, s.biome);
         else if (o.t === T.RUIN) drawRuin(ctx, o.x, o.y, v, s.biome);
         else drawRock(ctx, o.x + 0.5, o.y + 0.5, v, s.biome);
+        ctx.restore();
       } else if (o.k === 'b' || o.k === 'g') this.drawBuilding(ctx, o.e, o.k === 'g', ui);
       else this.drawUnitEnt(ctx, o.e, ui);
     }
@@ -561,7 +597,7 @@ export class Renderer {
     if (k >= 1 && t0) s.rising.delete(b.id);
     this.blit(ctx, spr, b.tx, b.ty, k < 1 ? k : null);
     const powered = !owner || (owner.power >= owner.drain && !owner.blackout);
-    if (!civ && k >= 1) drawBuildingDynamic(ctx, b, color, this.time, powered, faction);
+    if (!civ && k >= 1) { ctx.save(); ctx.translate(0, -gz(b.tx, b.ty)); drawBuildingDynamic(ctx, b, color, this.time, powered, faction); ctx.restore(); }
     ctx.globalAlpha = 1;
     if (ghost) return;
     if (civ && (b.occ > 0 || ui.selection.has(b.id) || ui.hover === b.id)) this.drawPips(ctx, b, owner);
@@ -603,13 +639,14 @@ export class Renderer {
     const firing = performance.now() - (s.firing.get(e.id) || 0) < 120;
     if (e.cloaked) ctx.globalAlpha = s.isAlly(s.you, e.owner) ? 0.45 : 0.6;
     // snap to whole art pixels so units don't shimmer
-    const [X, Y] = iso(e.x, e.y);
+    const [X, Y] = isoFlat(e.x, e.y);
     const Xs = Math.round(X * this.S) / this.S, Ys = Math.round(Y * this.S) / this.S;
     const ux = (Xs / HW + Ys / HH) / 2, uy = (Ys / HH - Xs / HW) / 2;
     const k = uscale(e.type);
-    const [gx, gy] = iso(ux, uy);
+    const [gx, gy] = isoFlat(ux, uy);
     ctx.save();
-    if (e.alt) ctx.translate(0, -Math.round(e.alt * this.S) / this.S);
+    const lift = (e.alt || 0) + gz(e.x, e.y);
+    if (lift) ctx.translate(0, -Math.round(lift * this.S) / this.S);
     ctx.translate(gx, gy); ctx.scale(k, k); ctx.translate(-gx, -gy);
     drawUnit(ctx, e.type, ux, uy, e.dir, e.turret, owner.color, owner.faction, this.time, e.flags, e.cargo, firing);
     ctx.restore();
@@ -663,10 +700,10 @@ export class Renderer {
       ctx.fillStyle = 'rgba(8,12,18,0.18)';
       ctx.beginPath(); ctx.ellipse(sx, sy, 34, 17, 0, 0, Math.PI * 2); ctx.fill();
       ctx.save();
-      ctx.translate(0, -z);
+      ctx.translate(0, -z - gz(pl.x, pl.y));
       if (!drawTransport(ctx, pl.x, pl.y, pl.dir, this.time)) {
         const c = Math.cos(pl.dir), sn = Math.sin(pl.dir);
-        const P = (f, q) => iso(pl.x + c * f - sn * q, pl.y + sn * f + c * q);
+        const P = (f, q) => isoFlat(pl.x + c * f - sn * q, pl.y + sn * f + c * q);
         ctx.fillStyle = '#6a6e64';
         for (const shape of [[[0.9, 0], [-0.8, 0.08], [-0.8, -0.08]], [[0.15, 0.9], [-0.15, 0.9], [-0.1, -0.9], [0.15, -0.9]], [[-0.65, 0.35], [-0.8, 0.35], [-0.8, -0.35], [-0.65, -0.35]]]) {
           ctx.beginPath(); shape.forEach(([f, q], i) => { const [x, y] = P(f, q); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath(); ctx.fill();
@@ -730,7 +767,9 @@ export class Renderer {
     const H = p.kind === 'nuke' ? 400 : p.kind === 'missile' ? 120 + dist * 6 : dist * 5;
     // projectiles climb from the shooter's altitude to the target's (anti-air fire, air strikes)
     const z = (arc ? Math.sin(Math.PI * f) * H : 0) + 10 + (p.zs || 0) + ((p.zt || 0) - (p.zs || 0)) * f;
-    const [sx, sy] = iso(p.x, p.y, z);
+    // ground under the flight path: straight line between shooter's and target's ground heights
+    const g0 = gz(p.sx, p.sy), g1 = gz(p.tx, p.ty);
+    const [sx, sy] = isoFlat(p.x, p.y, z + g0 + (g1 - g0) * f);
     const dx = p.tx - p.sx, dy = p.ty - p.sy, dl = Math.hypot(dx, dy) || 1;
     const sdx = (dx - dy) / dl * HW, sdy = (dx + dy) / dl * HH;
     const zslope = arc ? Math.cos(Math.PI * f) * H * Math.PI / Math.max(1, dist) / 30 : 0;
@@ -865,8 +904,12 @@ export class Renderer {
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       const i = y * s.w + x;
       if (s.explored[i] || !onScreen(x + 0.5, y + 0.5)) continue;
-      const [px, py] = iso(x, y);
+      const [px, py] = isoFlat(x, y);
       black.moveTo(px, py - 1.5); black.lineTo(px + HW + 2, py + HH); black.lineTo(px, py + 2 * HH + 1.5); black.lineTo(px - HW - 2, py + HH); black.closePath();
+      if (HG) {
+        const a = iso(x, y), b = iso(x + 1, y), c = iso(x + 1, y + 1), d = iso(x, y + 1);
+        black.moveTo(a[0], a[1] - 1.5); black.lineTo(b[0] + 2, b[1]); black.lineTo(c[0], c[1] + 1.5); black.lineTo(d[0] - 2, d[1]); black.closePath();
+      }
       nb++;
     }
     if (nb) { ctx.fillStyle = '#000'; ctx.fill(black); }
@@ -882,15 +925,17 @@ export class Renderer {
       if (good) {
         const i = y * s.w + x;
         const t = s.terrain[i];
-        good = !s.bmap[i] && buildable(t) && s.explored[i];
+        good = !s.bmap[i] && buildable(t) && s.explored[i] && flatArea(s.hgt, s.w, x, y, 1, 1);
         if (good) for (const e of s.ents.values()) if (e.kind === 'u' && e.x >= x - 0.1 && e.x <= x + 1.1 && e.y >= y - 0.1 && e.y <= y + 1.1 && s.canSee(e)) { good = false; break; }
       }
       cells.push([x, y, good]);
       if (!good) ok = false;
     }
+    // the whole footprint must also sit on one level (no straddling a cliff)
+    if (ok && tx >= 0 && ty >= 0 && tx + d.w <= s.w && ty + d.h <= s.h && !flatArea(s.hgt, s.w, tx, ty, d.w, d.h)) { ok = false; for (const c of cells) c[2] = false; }
     let near = false;
     for (const e of s.ents.values()) {
-      if (e.kind !== 'b' || e.owner !== s.you || e.type === 'derrick' || e.civ) continue;
+      if (e.kind !== 'b' || !D.extendsBase(e, s.you, o => s.isAlly(s.you, o))) continue;
       const gx = Math.max(e.tx - (tx + d.w), tx - (e.tx + e.w), 0);
       const gy = Math.max(e.ty - (ty + d.h), ty - (e.ty + e.h), 0);
       if (Math.max(gx, gy) <= D.BUILD_RADIUS) { near = true; break; }
@@ -909,9 +954,9 @@ export class Renderer {
     this.blit(ctx, spr, tx, ty);
     ctx.globalAlpha = 1;
     for (const [x, y, good] of v.cells) {
-      const [px, py] = iso(x, y);
+      const a = iso(x, y), b = iso(x + 1, y), c = iso(x + 1, y + 1), d = iso(x, y + 1);
       ctx.fillStyle = good && v.near ? 'rgba(80,255,80,0.35)' : 'rgba(255,60,60,0.45)';
-      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + HW, py + HH); ctx.lineTo(px, py + 2 * HH); ctx.lineTo(px - HW, py + HH); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(c[0], c[1]); ctx.lineTo(d[0], d[1]); ctx.closePath(); ctx.fill();
     }
     this.drawRange(ctx, type, this.s.me.faction, tx + d.w / 2, ty + d.h / 2, v.ok);
   }

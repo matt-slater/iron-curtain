@@ -184,6 +184,13 @@ export const BUILD_RADIUS = 5;
 
 export const ALL_TYPES = [...Object.keys(UNITS), ...Object.keys(BUILDINGS)];
 export const TYPE_INDEX = Object.fromEntries(ALL_TYPES.map((t, i) => [t, i]));
+// RA2: you can build next to your own base, your allies' bases, and tech buildings you have captured.
+export function extendsBase(b, pid, isAlly) {
+  if (b.owner < 0 || isCivilian(b.type) || b.type === 'bridgehut') return false;
+  if (b.owner === pid) return true;
+  return isAlly(b.owner) && !BUILDINGS[b.type].tech && b.type !== 'derrick';
+}
+
 export const BRIDGE_HP = 1200;
 export function bridgeDamage(w) { return w.proj === 'bullet' || w.proj === 'none' || w.aa && !w.vs.building ? 0 : (w.vs.building || 0); }
 export const PROJ_KINDS = ['bullet', 'shell', 'rocket', 'arty', 'grad', 'missile', 'nuke'];

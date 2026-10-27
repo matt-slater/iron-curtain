@@ -1,6 +1,6 @@
 // Deterministic, symmetric map generator.
 
-export const T = { GRASS: 0, WATER: 1, ROCK: 2, TREE: 3, SAND: 4, ICE: 5, RUIN: 6, BRIDGE: 7 };
+export const T = { GRASS: 0, WATER: 1, ROCK: 2, TREE: 3, SAND: 4, ICE: 5, RUIN: 6, BRIDGE: 7, CLIFF: 8 };
 export const BIOMES = ['temperate', 'arctic', 'desert', 'jungle'];
 
 // Movement classes: ground units, amphibious, forest walkers, mountain walkers.

@@ -260,7 +260,7 @@ function renderMapInfo(L) {
   previewKey = key;
   const map = createMap({ map: L.settings.map, seed: L.settings.seed, mapSize: L.settings.mapSize || (np > 2 ? 80 : 64) }, np);
   const B = BIOME[map.biome] || BIOME.temperate;
-  const col = { [T.GRASS]: B.ground, [T.WATER]: B.water, [T.SAND]: B.sand, [T.ROCK]: B.rock, [T.TREE]: B.tree, [T.ICE]: B.ice, [T.RUIN]: '#2a2a28', [T.BRIDGE]: '#4a3a28' };
+  const col = { [T.GRASS]: B.ground, [T.WATER]: B.water, [T.SAND]: B.sand, [T.ROCK]: B.rock, [T.TREE]: B.tree, [T.ICE]: B.ice, [T.RUIN]: '#2a2a28', [T.BRIDGE]: '#4a3a28', [T.CLIFF]: '#5a5448' };
   const c = $('map-preview'), ctx = c.getContext('2d');
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, c.width, c.height);
   const n = map.w, sc = Math.min(c.width / (2 * n), c.height / n);

@@ -1,7 +1,7 @@
 // Input handling, sidebar, minimap, messages.
 import * as D from './shared/data.js';
 import { T } from './shared/map.js';
-import { iso, drawCameo, drawFlag } from './sprites.js';
+import { iso, shade, drawCameo, drawFlag } from './sprites.js';
 import { play, toggleMute } from './audio.js';
 import { onSpritesLoaded } from './sprite-art.js';
 
@@ -653,11 +653,12 @@ export class GameUI {
     c.width = this.mini.width; c.height = this.mini.height;
     const ctx = c.getContext('2d');
     const { sc, ox, oy } = this.miniScale();
-    const colors = { [T.GRASS]: '#0c2410', [T.WATER]: '#020a05', [T.SAND]: '#163a1a', [T.ROCK]: '#24482a', [T.TREE]: '#0f3216', [T.ICE]: '#1c3a26', [T.RUIN]: '#2e5232', [T.BRIDGE]: '#1a3a1c' };
+    const colors = { [T.GRASS]: '#0c2410', [T.WATER]: '#020a05', [T.SAND]: '#163a1a', [T.ROCK]: '#24482a', [T.TREE]: '#0f3216', [T.ICE]: '#1c3a26', [T.RUIN]: '#2e5232', [T.BRIDGE]: '#1a3a1c', [T.CLIFF]: '#3a6a40' };
     for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
       const [X, Y] = iso(x, y);
       const px = ox + X * sc, py = oy + Y * sc;
-      ctx.fillStyle = colors[s.terrain[y * s.w + x]];
+      const hh = s.hgt ? s.hgt[y * (s.w + 1) + x] : 0;
+      ctx.fillStyle = hh ? shade(colors[s.terrain[y * s.w + x]], 1 + hh * 0.22) : colors[s.terrain[y * s.w + x]];
       ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + 32 * sc + 0.3, py + 16 * sc); ctx.lineTo(px, py + 32 * sc + 0.3); ctx.lineTo(px - 32 * sc - 0.3, py + 16 * sc); ctx.closePath(); ctx.fill();
     }
     this.miniTerrain = c;

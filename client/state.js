@@ -22,6 +22,7 @@ export class ClientState {
     this.biome = this.map.biome || 'temperate';
     this.w = this.map.w; this.h = this.map.h;
     this.terrain = this.map.terrain;
+    this.hgt = this.map.hgt;
     // same bridge list (and order) as the server; hp is in percent from snapshots
     this.bridges = findBridges(this.terrain, this.w, this.h).map((b, i) => ({ ...b, id: i, hp: 100, set: new Set(b.tiles) }));
     this.terrainVersion = 0;

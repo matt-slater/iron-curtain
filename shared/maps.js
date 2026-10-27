@@ -2,6 +2,7 @@
 // Each map describes features once (canonical half/quadrant); the builder mirrors them
 // (point symmetry for 2 players, 4-fold rotation for 4) so every start is equally fair.
 import { T, mulberry32, fractal, generateMap, terrainPassable, buildable, widenCorridors, MOVE } from './map.js';
+import { elevate } from './elevation.js';
 
 function hash2(a, b) {
   let h = (a * 374761393 + b * 668265263) | 0;
@@ -577,16 +578,16 @@ const cache = new Map();
 // Builds the map for a game setup. Set maps are deterministic; random maps use the seed.
 export function createMap(setup, numPlayers) {
   const def = setup.map && MAP_INDEX[setup.map];
-  if (!def) return generateMap(setup.seed, setup.mapSize || (numPlayers > 2 ? 80 : 64), numPlayers);
+  if (!def) return elevate(generateMap(setup.seed, setup.mapSize || (numPlayers > 2 ? 80 : 64), numPlayers), setup.seed >>> 0, numPlayers > 2 ? 'rot4' : 'point');
   const key = def.id + '|' + numPlayers;
   if (!cache.has(key)) {
     const b = new MapBuilder(def.n, def.sym, hashStr(def.id));
     def.build(b);
-    cache.set(key, b.finish(def, numPlayers));
+    cache.set(key, elevate(b.finish(def, numPlayers), hashStr(def.id), def.sym === 'rot4' ? 'rot4' : 'point'));
   }
   const m = cache.get(key);
   // hand out copies so games can't mutate the cached map
-  return { ...m, terrain: new Uint8Array(m.terrain), ore: new Uint16Array(m.ore), derricks: m.derricks.map(d => ({ ...d })), civ: (m.civ || []).map(c => ({ ...c })), starts: m.starts.map(s => ({ ...s })) };
+  return { ...m, terrain: new Uint8Array(m.terrain), hgt: new Uint8Array(m.hgt), ore: new Uint16Array(m.ore), derricks: m.derricks.map(d => ({ ...d })), civ: (m.civ || []).map(c => ({ ...c })), starts: m.starts.map(s => ({ ...s })) };
 }
 
 function hashStr(s) {
