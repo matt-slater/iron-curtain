@@ -250,7 +250,8 @@ export class AI {
     if (!opts.length) return null;
     const special = D.COUNTRIES[p.country].special;
     if (opts.includes(special) && Math.random() < 0.35) {
-      const lim = UNITS[special].limit;
+      // spies are utility units: a couple is plenty, they don't fight
+      const lim = UNITS[special].limit || (UNITS[special].cloak === true ? 2 : 0);
       if (!lim || (p.unitCounts[special] || 0) < lim) return special;
     }
     if (cat === 'infantry') {

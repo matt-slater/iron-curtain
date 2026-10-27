@@ -44,7 +44,7 @@ All graphics and sounds are generated in code. The game uses no copyrighted asse
   | | NATO: quality | Warsaw Pact: quantity and armor |
   |---|---|---|
   | Basic infantry | Rifleman $200. **Deploys (D)** into sandbags: heavy fire, longer range, 40% less damage taken | Conscript $100. Weaker, but trains 25% faster |
-  | AT infantry | Dragon team $400. Deploys for longer range and more damage | RPG trooper $250. Cheaper and weaker |
+  | AT infantry | Dragon team $350. Deploys for longer range and more damage | RPG trooper $250. Cheaper and weaker |
   | Main tank | M60 $700: fast, lighter armor | T-72 $900: tough, hard-hitting, slow |
   | Ore truck | Fast and light, unarmed | War Miner: armored, carries more, **machine gun**, slow |
   | Power | $800 for +120 | $600 for +80, sturdier |
@@ -175,4 +175,5 @@ node test/air.js         # jets, pads, rearming, helicopters, anti-air
 node test/bridge.js      # destroying and repairing bridges
 node test/paradrop.js    # tech airport capture and paradrops
 node test/elevation.js   # plateaus, ramps, flat-only building, build radius
+node test/balance.js 3   # AI-vs-AI round robin: faction/country win rates, unit value per $
 ```

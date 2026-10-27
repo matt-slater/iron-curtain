@@ -51,37 +51,37 @@ const V = (infantry, light, heavy, building, air = 0) => ({ infantry, light, hea
 
 // proj: bullet | shell | rocket | arty | grad | missile | none
 export const WEAPONS = {
-  rifle: { dmg: 15, rof: 1.0, range: 4.5, proj: 'bullet', vs: V(1, 0.35, 0.2, 0.25), snd: 'rifle' },
+  rifle: { dmg: 18, rof: 1.0, range: 4.5, proj: 'bullet', vs: V(1, 0.35, 0.2, 0.25), snd: 'rifle' },
   conscriptRifle: { dmg: 11, rof: 1.0, range: 4.5, proj: 'bullet', vs: V(1, 0.3, 0.15, 0.2), snd: 'rifle' },
-  rifleDug: { dmg: 16, rof: 0.35, range: 6, proj: 'bullet', vs: V(1, 0.35, 0.15, 0.25), snd: 'mg' },
+  rifleDug: { dmg: 18, rof: 0.35, range: 6, proj: 'bullet', vs: V(1, 0.35, 0.15, 0.25), snd: 'mg' },
   atDug: { dmg: 70, rof: 2.0, range: 7.5, proj: 'rocket', vs: V(0.3, 1, 1, 0.6), snd: 'rocket' },
   rpgRocket: { dmg: 50, rof: 2.2, range: 5, proj: 'rocket', vs: V(0.3, 1, 1, 0.6), snd: 'rocket' },
   minerMg: { dmg: 12, rof: 0.5, range: 4.5, proj: 'bullet', vs: V(1, 0.4, 0.1, 0.1, 0.2), snd: 'mg', turret: true },
-  atRocket: { dmg: 55, rof: 2.2, range: 5.5, proj: 'rocket', vs: V(0.3, 1, 1, 0.6), snd: 'rocket' },
+  atRocket: { dmg: 58, rof: 2.2, range: 5.5, proj: 'rocket', vs: V(0.3, 1, 1, 0.6), snd: 'rocket' },
   mg: { dmg: 12, rof: 0.45, range: 5, proj: 'bullet', vs: V(1, 0.45, 0.15, 0.2, 0.35), snd: 'mg', turret: true },
   hmg: { dmg: 18, rof: 0.45, range: 5, proj: 'bullet', vs: V(1, 0.6, 0.25, 0.3, 0.5), snd: 'mg', turret: true },
-  gun105: { dmg: 58, rof: 1.6, range: 5.5, proj: 'shell', vs: V(0.35, 1, 1, 0.8), snd: 'cannon', turret: true },
+  gun105: { dmg: 60, rof: 1.6, range: 5.5, proj: 'shell', vs: V(0.35, 1, 1, 0.8), snd: 'cannon', turret: true },
   gun125: { dmg: 88, rof: 2.0, range: 5.5, proj: 'shell', vs: V(0.35, 1, 1, 0.8), snd: 'cannon', turret: true },
-  gun120: { dmg: 95, rof: 1.6, range: 6, proj: 'shell', vs: V(0.4, 1, 1, 0.85), snd: 'cannon', turret: true },
+  gun120: { dmg: 105, rof: 1.6, range: 6, proj: 'shell', vs: V(0.4, 1, 1, 0.85), snd: 'cannon', turret: true },
   leoGun: { dmg: 115, rof: 1.9, range: 7, proj: 'shell', vs: V(0.25, 1.1, 1.2, 0.6), snd: 'cannon', turret: true },
-  twin130: { dmg: 80, rof: 2.3, range: 5.5, proj: 'shell', burst: 2, burstDelay: 0.2, vs: V(0.4, 1, 1, 0.9), snd: 'cannon', turret: true },
-  howitzer: { dmg: 110, rof: 4.5, range: 11, minRange: 3, proj: 'arty', splash: 1.3, inacc: 0.6, clears: 0.35, vs: V(1, 0.8, 0.5, 0.8), snd: 'artillery', turret: true },
+  twin130: { dmg: 85, rof: 2.3, range: 5.5, proj: 'shell', burst: 2, burstDelay: 0.2, vs: V(0.4, 1, 1, 0.9), snd: 'cannon', turret: true },
+  howitzer: { dmg: 100, rof: 4.5, range: 11, minRange: 3, proj: 'arty', splash: 1.3, inacc: 0.6, clears: 0.35, vs: V(1, 0.8, 0.5, 0.8), snd: 'artillery', turret: true },
   gradRockets: { dmg: 38, rof: 6, range: 10, minRange: 3, proj: 'grad', splash: 1.0, inacc: 1.3, burst: 6, burstDelay: 0.15, clears: 0.35, vs: V(1, 0.8, 0.45, 0.7), snd: 'rocket' },
   plutonMissile: { dmg: 320, rof: 13, range: 18, minRange: 5, proj: 'missile', splash: 2.0, inacc: 0.4, clears: 0.5, vs: V(1, 0.9, 0.8, 1), snd: 'missile' },
   sasRifle: { dmg: 160, rof: 1.5, range: 7, proj: 'bullet', clears: 1, vs: V(1, 0.08, 0.04, 0), snd: 'sniper' },
   c4: { dmg: 0, rof: 1, range: 0.9, proj: 'none', vs: V(0, 0, 0, 1), c4: true },
-  marineRifle: { dmg: 20, rof: 0.9, range: 5, proj: 'bullet', vs: V(1, 0.4, 0.2, 0.3), snd: 'rifle' },
-  marineDug: { dmg: 20, rof: 0.3, range: 6.5, proj: 'bullet', vs: V(1, 0.4, 0.2, 0.3), snd: 'mg' },
+  marineRifle: { dmg: 26, rof: 0.9, range: 5, proj: 'bullet', vs: V(1, 0.4, 0.2, 0.3), snd: 'rifle' },
+  marineDug: { dmg: 26, rof: 0.3, range: 6.5, proj: 'bullet', vs: V(1, 0.4, 0.2, 0.3), snd: 'mg' },
   merkavaGun: { dmg: 92, rof: 1.7, range: 6, proj: 'shell', vs: V(0.5, 1, 1, 0.85), snd: 'cannon', turret: true },
   g6gun: { dmg: 125, rof: 5, range: 14, minRange: 4, proj: 'arty', splash: 1.4, inacc: 0.8, clears: 0.35, vs: V(1, 0.8, 0.5, 0.8), snd: 'artillery', turret: true },
   akRifle: { dmg: 16, rof: 0.9, range: 4.5, proj: 'bullet', vs: V(1, 0.35, 0.15, 0.25), snd: 'rifle' },
   quadCannon: { dmg: 10, rof: 0.15, range: 6, proj: 'bullet', vs: V(1, 0.8, 0.15, 0.15, 1.1), snd: 'mg', turret: true, aa: true },
   scudMissile: { dmg: 420, rof: 20, range: 22, minRange: 6, proj: 'missile', splash: 2.6, inacc: 2.6, clears: 0.5, vs: V(1, 0.9, 0.8, 1), snd: 'missile' },
   // ---- aircraft ----
-  maverick: { dmg: 160, rof: 0.7, range: 5, proj: 'rocket', vs: V(0.4, 1, 1, 0.8), snd: 'rocket' },
-  frogRockets: { dmg: 45, rof: 1.0, range: 5, proj: 'rocket', splash: 0.9, inacc: 0.5, burst: 4, burstDelay: 0.08, vs: V(1, 0.9, 0.7, 0.8), snd: 'rocket' },
+  maverick: { dmg: 200, rof: 0.7, range: 5, proj: 'rocket', vs: V(0.4, 1, 1, 0.8), snd: 'rocket' },
+  frogRockets: { dmg: 30, rof: 1.0, range: 5, proj: 'rocket', splash: 0.9, inacc: 0.5, burst: 4, burstDelay: 0.08, vs: V(1, 0.9, 0.7, 0.8), snd: 'rocket' },
   cobraGun: { dmg: 34, rof: 0.9, range: 5, proj: 'rocket', splash: 0.5, vs: V(0.9, 1, 0.75, 0.6), snd: 'rocket' },
-  hindGun: { dmg: 30, rof: 1.0, range: 5, proj: 'rocket', splash: 0.6, burst: 2, burstDelay: 0.15, vs: V(1, 0.9, 0.6, 0.6), snd: 'rocket' },
+  hindGun: { dmg: 19, rof: 1.0, range: 5, proj: 'rocket', splash: 0.6, burst: 2, burstDelay: 0.15, vs: V(1, 0.9, 0.6, 0.6), snd: 'rocket' },
   // ---- anti-air ----
   vulcanGun: { dmg: 11, rof: 0.12, range: 7, proj: 'bullet', vs: V(0.9, 0.4, 0.08, 0.1, 1), snd: 'mg', turret: true, aa: true },
   strelaMissile: { dmg: 90, rof: 1.8, range: 9, proj: 'missile', vs: V(0, 0, 0, 0, 1), snd: 'missile', turret: true, aa: true },
@@ -90,7 +90,7 @@ export const WEAPONS = {
   pistol: { dmg: 9, rof: 1.0, range: 3.5, proj: 'bullet', vs: V(1, 0.05, 0, 0), snd: 'rifle' },
   suicide: { dmg: 450, rof: 1, range: 0.7, proj: 'none', splash: 1.6, suicide: true, clears: 1, vs: V(1, 1, 1, 1), snd: 'boom' },
   pillboxMg: { dmg: 18, rof: 0.5, range: 6, proj: 'bullet', vs: V(1, 0.4, 0.15, 0.2, 0.4), snd: 'mg', turret: true },
-  atGun: { dmg: 85, rof: 2.0, range: 7, proj: 'shell', vs: V(0.3, 1, 1, 0.5), snd: 'cannon', turret: true },
+  atGun: { dmg: 115, rof: 1.7, range: 7, proj: 'shell', vs: V(0.3, 1, 1, 0.5), snd: 'cannon', turret: true },
 };
 
 export const PROJ_SPEED = { bullet: 40, shell: 16, rocket: 10, arty: 7, grad: 9, missile: 12, nuke: 4 };
@@ -108,10 +108,10 @@ export const UNITS = {
     factions: { NATO: { name: 'Stinger Team' }, PACT: { name: 'Strela-2 Team', cost: 350, hp: 95 } } },
   mcv: { name: 'MCV', faction: 'ALL', cat: 'vehicle', cost: 3000, hp: 1000, armor: 'heavy', speed: 1.2, sight: 4, req: ['factory', 'radar'], look: 'mcv', desc: 'Mobile Construction Vehicle. Deploys into a Construction Yard.' },
   // --- NATO ---
-  rifleman: { name: 'Rifleman', faction: 'NATO', cat: 'infantry', garrison: true, cost: 200, hp: 125, armor: 'infantry', speed: 1.3, sight: 6, weapon: 'rifle', deployWeapon: 'rifleDug', deployArmor: 0.6, req: ['barracks'], look: 'inf', desc: 'Well-trained soldier. DEPLOY (D) to dig into sandbags: heavy fire, longer range, 40% less damage taken.' },
-  atteam: { name: 'Dragon AT Team', faction: 'NATO', cat: 'infantry', garrison: true, cost: 400, hp: 125, armor: 'infantry', speed: 1.2, sight: 6, weapon: 'atRocket', deployWeapon: 'atDug', deployArmor: 0.6, req: ['barracks'], look: 'atinf', desc: 'Anti-tank missile team. DEPLOY (D) to set up the launcher: longer range and harder hits.' },
+  rifleman: { name: 'Rifleman', faction: 'NATO', cat: 'infantry', garrison: true, cost: 200, hp: 160, armor: 'infantry', speed: 1.3, sight: 6, weapon: 'rifle', deployWeapon: 'rifleDug', deployArmor: 0.6, req: ['barracks'], look: 'inf', desc: 'Well-trained soldier. DEPLOY (D) to dig into sandbags: heavy fire, longer range, 40% less damage taken.' },
+  atteam: { name: 'Dragon AT Team', faction: 'NATO', cat: 'infantry', garrison: true, cost: 350, hp: 130, armor: 'infantry', speed: 1.2, sight: 6, weapon: 'atRocket', deployWeapon: 'atDug', deployArmor: 0.6, req: ['barracks'], look: 'atinf', desc: 'Anti-tank missile team. DEPLOY (D) to set up the launcher: longer range and harder hits.' },
   jeep: { name: 'Recon Jeep', faction: 'NATO', cat: 'vehicle', cost: 500, hp: 230, armor: 'light', speed: 3.4, sight: 8, weapon: 'mg', req: ['factory'], look: 'jeep', desc: 'Fast scout with a machine gun.' },
-  m60: { name: 'M60 Patton', faction: 'NATO', cat: 'vehicle', cost: 700, hp: 400, armor: 'heavy', speed: 2.4, sight: 6, weapon: 'gun105', req: ['factory'], look: 'tank', desc: 'Fast, cheap main battle tank. Lighter armor than Pact tanks.' },
+  m60: { name: 'M60 Patton', faction: 'NATO', cat: 'vehicle', cost: 700, hp: 420, armor: 'heavy', speed: 2.4, sight: 6, weapon: 'gun105', req: ['factory'], look: 'tank', desc: 'Fast, cheap main battle tank. Lighter armor than Pact tanks.' },
   m109: { name: 'M109 Howitzer', faction: 'NATO', cat: 'vehicle', cost: 1000, hp: 250, armor: 'light', speed: 1.6, sight: 6, weapon: 'howitzer', req: ['factory', 'radar'], look: 'arty', desc: 'Long-range self-propelled artillery.' },
   // --- PACT ---
   conscript: { name: 'Conscript', faction: 'PACT', cat: 'infantry', garrison: true, cost: 100, hp: 100, armor: 'infantry', speed: 1.3, sight: 5, weapon: 'conscriptRifle', req: ['barracks'], look: 'inf', desc: 'Cheap, poorly trained rifleman. Strength in numbers.' },
@@ -125,21 +125,21 @@ export const UNITS = {
   a10: { name: 'A-10 Thunderbolt', faction: 'NATO', cat: 'air', air: 'jet', cost: 1400, hp: 380, armor: 'air', speed: 6, sight: 7, weapon: 'maverick', ammo: 4, req: ['airfield'], look: 'a10', desc: 'Tank-busting jet. Flies attack runs with 4 missiles, then returns to its landing pad to rearm.' },
   cobra: { name: 'AH-1 Cobra', faction: 'NATO', cat: 'air', air: 'heli', cost: 1200, hp: 360, armor: 'air', speed: 3.4, sight: 7, weapon: 'cobraGun', req: ['airfield'], look: 'cobra', desc: 'Attack helicopter. Hovers anywhere and fires rockets. Vulnerable to anti-air and machine guns.' },
   su25: { name: 'Su-25 Frogfoot', faction: 'PACT', cat: 'air', air: 'jet', cost: 1400, hp: 450, armor: 'air', speed: 5.5, sight: 7, weapon: 'frogRockets', ammo: 3, req: ['airfield'], look: 'su25', desc: 'Armored ground-attack jet. Three rocket salvos per sortie, then rearms on its landing pad.' },
-  hind: { name: 'Mi-24 Hind', faction: 'PACT', cat: 'air', air: 'heli', cost: 1300, hp: 520, armor: 'air', speed: 3.0, sight: 7, weapon: 'hindGun', req: ['airfield'], look: 'hind', desc: 'Heavily armored helicopter gunship with rocket pods.' },
+  hind: { name: 'Mi-24 Hind', faction: 'PACT', cat: 'air', air: 'heli', cost: 1300, hp: 450, armor: 'air', speed: 3.0, sight: 7, weapon: 'hindGun', req: ['airfield'], look: 'hind', desc: 'Heavily armored helicopter gunship with rocket pods.' },
   // --- Country specials ---
-  abrams: { name: 'M1 Abrams', faction: 'NATO', country: 'USA', cat: 'vehicle', cost: 1500, hp: 680, armor: 'heavy', speed: 2.1, sight: 6, weapon: 'gun120', req: ['factory', 'tech'], look: 'heavytank', desc: COUNTRIES.USA.desc },
-  sas: { name: 'SAS Commando', faction: 'NATO', country: 'UK', cat: 'infantry', cost: 1500, hp: 220, armor: 'infantry', speed: 1.6, sight: 8, weapon: 'sasRifle', weaponBld: 'c4', req: ['barracks', 'tech'], look: 'commando', limit: 1, desc: COUNTRIES.UK.desc },
-  leopard: { name: 'Leopard 2', faction: 'NATO', country: 'FRG', cat: 'vehicle', cost: 1300, hp: 520, armor: 'heavy', speed: 2.3, sight: 8, weapon: 'leoGun', req: ['factory', 'tech'], look: 'leopard', desc: COUNTRIES.FRG.desc },
+  abrams: { name: 'M1 Abrams', faction: 'NATO', country: 'USA', cat: 'vehicle', cost: 1300, hp: 800, armor: 'heavy', speed: 2.1, sight: 6, weapon: 'gun120', req: ['factory', 'tech'], look: 'heavytank', desc: COUNTRIES.USA.desc },
+  sas: { name: 'SAS Commando', faction: 'NATO', country: 'UK', cat: 'infantry', cost: 1200, hp: 220, armor: 'infantry', speed: 1.6, sight: 8, weapon: 'sasRifle', weaponBld: 'c4', req: ['barracks', 'tech'], look: 'commando', limit: 1, desc: COUNTRIES.UK.desc },
+  leopard: { name: 'Leopard 2', faction: 'NATO', country: 'FRG', cat: 'vehicle', cost: 1200, hp: 520, armor: 'heavy', speed: 2.3, sight: 8, weapon: 'leoGun', req: ['factory', 'tech'], look: 'leopard', desc: COUNTRIES.FRG.desc },
   pluton: { name: 'Pluton Launcher', faction: 'NATO', country: 'FRA', cat: 'vehicle', cost: 1600, hp: 260, armor: 'light', speed: 1.5, sight: 6, weapon: 'plutonMissile', req: ['factory', 'tech'], look: 'missile', desc: COUNTRIES.FRA.desc },
-  obj279: { name: 'Object 279', faction: 'PACT', country: 'USSR', cat: 'vehicle', cost: 1800, hp: 1000, armor: 'heavy', speed: 1.4, sight: 6, weapon: 'twin130', req: ['factory', 'tech'], look: 'superheavy', selfHeal: 5, desc: COUNTRIES.USSR.desc },
-  stasi: { name: 'Stasi Agent', faction: 'PACT', country: 'GDR', cat: 'infantry', cost: 600, hp: 100, armor: 'infantry', speed: 1.5, sight: 10, weapon: 'pistol', req: ['barracks', 'radar'], look: 'spy', cloak: true, desc: COUNTRIES.GDR.desc },
-  skot: { name: 'OT-64 SKOT', faction: 'PACT', country: 'POL', cat: 'vehicle', cost: 700, hp: 360, armor: 'light', speed: 3.0, sight: 7, weapon: 'hmg', req: ['factory'], look: 'apc', amphib: true, move: 'amphib', desc: COUNTRIES.POL.desc },
-  rokmarine: { name: 'ROK Marine', faction: 'NATO', country: 'ROK', cat: 'infantry', garrison: true, cost: 400, hp: 180, armor: 'infantry', speed: 1.35, sight: 6, weapon: 'marineRifle', deployWeapon: 'marineDug', deployArmor: 0.5, req: ['barracks', 'radar'], look: 'marine', desc: COUNTRIES.ROK.desc },
-  merkava: { name: 'Merkava', faction: 'NATO', country: 'ISR', cat: 'vehicle', cost: 1600, hp: 850, armor: 'heavy', speed: 1.8, sight: 6, weapon: 'merkavaGun', req: ['factory', 'tech'], look: 'merkava', desc: COUNTRIES.ISR.desc },
+  obj279: { name: 'Object 279', faction: 'PACT', country: 'USSR', cat: 'vehicle', cost: 1800, hp: 1150, armor: 'heavy', speed: 1.4, sight: 6, weapon: 'twin130', req: ['factory', 'tech'], look: 'superheavy', selfHeal: 5, desc: COUNTRIES.USSR.desc },
+  stasi: { name: 'Stasi Agent', faction: 'PACT', country: 'GDR', cat: 'infantry', cost: 450, hp: 100, armor: 'infantry', speed: 1.5, sight: 10, weapon: 'pistol', req: ['barracks', 'radar'], look: 'spy', cloak: true, desc: COUNTRIES.GDR.desc },
+  skot: { name: 'OT-64 SKOT', faction: 'PACT', country: 'POL', cat: 'vehicle', cost: 600, hp: 360, armor: 'light', speed: 3.0, sight: 7, weapon: 'hmg', req: ['factory'], look: 'apc', amphib: true, move: 'amphib', desc: COUNTRIES.POL.desc },
+  rokmarine: { name: 'ROK Marine', faction: 'NATO', country: 'ROK', cat: 'infantry', garrison: true, cost: 350, hp: 220, armor: 'infantry', speed: 1.35, sight: 6, weapon: 'marineRifle', deployWeapon: 'marineDug', deployArmor: 0.5, req: ['barracks', 'radar'], look: 'marine', desc: COUNTRIES.ROK.desc },
+  merkava: { name: 'Merkava', faction: 'NATO', country: 'ISR', cat: 'vehicle', cost: 1450, hp: 850, armor: 'heavy', speed: 1.8, sight: 6, weapon: 'merkavaGun', req: ['factory', 'tech'], look: 'merkava', desc: COUNTRIES.ISR.desc },
   g6: { name: 'G6 Rhino', faction: 'NATO', country: 'RSA', cat: 'vehicle', cost: 1400, hp: 320, armor: 'light', speed: 2.5, sight: 7, weapon: 'g6gun', req: ['factory', 'radar'], look: 'g6', desc: COUNTRIES.RSA.desc },
-  mujahid: { name: 'Mujahideen', faction: 'NATO', country: 'AFG', cat: 'infantry', garrison: true, cost: 350, hp: 110, armor: 'infantry', speed: 1.5, sight: 6, weapon: 'rpgRocket', move: 'mountain', cloak: 'terrain', req: ['barracks'], look: 'mujahid', desc: COUNTRIES.AFG.desc },
-  kpa: { name: 'KPA Squad', faction: 'PACT', country: 'PRK', cat: 'infantry', garrison: true, cost: 330, hp: 90, armor: 'infantry', speed: 1.3, sight: 5, weapon: 'conscriptRifle', squad: 3, req: ['barracks'], look: 'kpa', desc: COUNTRIES.PRK.desc },
-  vietcong: { name: 'Viet Cong', faction: 'PACT', country: 'VNM', cat: 'infantry', garrison: true, cost: 300, hp: 100, armor: 'infantry', speed: 1.6, sight: 6, weapon: 'akRifle', move: 'forest', cloak: 'terrain', req: ['barracks'], look: 'vc', desc: COUNTRIES.VNM.desc },
+  mujahid: { name: 'Mujahideen', faction: 'NATO', country: 'AFG', cat: 'infantry', garrison: true, cost: 260, hp: 130, armor: 'infantry', speed: 1.5, sight: 6, weapon: 'rpgRocket', move: 'mountain', cloak: 'terrain', req: ['barracks'], look: 'mujahid', desc: COUNTRIES.AFG.desc },
+  kpa: { name: 'KPA Squad', faction: 'PACT', country: 'PRK', cat: 'infantry', garrison: true, cost: 330, hp: 105, armor: 'infantry', speed: 1.3, sight: 5, weapon: 'conscriptRifle', squad: 3, req: ['barracks'], look: 'kpa', desc: COUNTRIES.PRK.desc },
+  vietcong: { name: 'Viet Cong', faction: 'PACT', country: 'VNM', cat: 'infantry', garrison: true, cost: 260, hp: 120, armor: 'infantry', speed: 1.6, sight: 6, weapon: 'akRifle', move: 'forest', cloak: 'terrain', req: ['barracks'], look: 'vc', desc: COUNTRIES.VNM.desc },
   shilka: { name: 'ZSU-23-4 Shilka', faction: 'PACT', country: 'EGY', cat: 'vehicle', cost: 1000, hp: 380, armor: 'light', speed: 2.2, sight: 7, weapon: 'quadCannon', req: ['factory', 'radar'], look: 'shilka', desc: COUNTRIES.EGY.desc },
   scud: { name: 'Scud Launcher', faction: 'PACT', country: 'IRQ', cat: 'vehicle', cost: 1800, hp: 300, armor: 'light', speed: 1.5, sight: 5, weapon: 'scudMissile', req: ['factory', 'tech'], look: 'scud', desc: COUNTRIES.IRQ.desc },
   guerrilla: { name: 'Guerrilla Sapper', faction: 'PACT', country: 'CUB', cat: 'infantry', cost: 300, hp: 90, armor: 'infantry', speed: 2.0, sight: 5, weapon: 'suicide', req: ['barracks'], look: 'sapper', desc: COUNTRIES.CUB.desc },
@@ -229,7 +229,7 @@ export function buildTime(type, faction) {
   const c = costOf(type, faction);
   if (UNITS[type]) {
     let mult = UNITS[type].cat === 'infantry' ? (FACTIONS[faction]?.infantryBuild ?? 1) : 1;
-    if (UNITS[type].squad) mult *= 1.6;
+    if (UNITS[type].squad) mult *= 1.35;
     return Math.max(2, c / 110) * mult;
   }
   return Math.max(4, c / 90);
