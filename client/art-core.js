@@ -297,7 +297,7 @@ export function barrel(ctx, cx, cy, dir, from, len, z, width, color = '#1c1d18')
 
 export function shadow(ctx, x, y, r) {
   const [sx, sy] = iso(x, y);
-  ctx.fillStyle = 'rgba(0,0,0,0.38)';
+  ctx.fillStyle = 'rgba(8,12,18,0.24)';
   ctx.beginPath(); ctx.ellipse(sx + 2, sy + 1, r * 45, r * 22, 0, 0, Math.PI * 2); ctx.fill();
 }
 

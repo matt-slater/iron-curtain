@@ -470,7 +470,7 @@ function drawInfantryBody(ctx, look, x, y, dir, color, faction, time, moving, fi
   }
   const [sx0, sy0] = iso(x, y);
   const sx = Math.round(sx0), sy = Math.round(sy0);
-  ctx.fillStyle = 'rgba(0,0,0,0.38)';
+  ctx.fillStyle = 'rgba(8,12,18,0.24)';
   ctx.beginPath(); ctx.ellipse(sx + 1, sy, 6, 3, 0, 0, Math.PI * 2); ctx.fill();
   const pal = INF[faction] || INF.NATO;
   const pactF = faction === 'PACT';

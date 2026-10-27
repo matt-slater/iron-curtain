@@ -334,7 +334,7 @@ export class Renderer {
       if (!(e.alt > 2)) continue;
       const [sx, sy] = iso(e.x, e.y);
       const r = e.air === 'jet' ? 18 : 14;
-      ctx.fillStyle = `rgba(0,0,0,${0.35 * Math.max(0.35, 1 - e.alt / 90)})`;
+      ctx.fillStyle = `rgba(8,12,18,${0.24 * Math.max(0.35, 1 - e.alt / 90)})`;
       ctx.beginPath(); ctx.ellipse(sx, sy, r, r / 2, 0, 0, Math.PI * 2); ctx.fill();
     }
     for (const e of air) this.drawUnitEnt(ctx, e, ui);
