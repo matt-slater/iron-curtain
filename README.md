@@ -27,7 +27,7 @@ All graphics and sounds are generated in code. The game uses no copyrighted asse
   | South Africa | G6 Rhino long-range wheeled howitzer | Egypt | ZSU-23-4 Shilka quad autocannon |
   | Afghan Mujahideen | Mujahideen (crosses mountains, hidden in rocks, RPGs) | Iraq | Scud launcher (huge range, inaccurate) |
 
-- **16 historical theaters across 4 biomes**, plus procedural random maps. Every map is mirrored so all start positions are equally fair.
+- **20 historical theaters across 4 biomes**, plus procedural random maps. Every map is mirrored so all start positions are equally fair.
 
   | Temperate | Arctic | Desert | Jungle |
   |---|---|---|---|
@@ -35,8 +35,9 @@ All graphics and sounds are generated in code. The game uses no copyrighted asse
   | Berlin 1961 (2P) | Chosin Reservoir 1950 (2P) | Golan Heights 1973 (2P) | Mekong Delta 1968 (4P) |
   | Budapest 1956 (2P) | Finnmark 1984 (4P) | Panjshir Valley 1984 (2P) | Cuito Cuanavale 1987 (2P) |
   | Prague Spring 1968 (4P) | Keflavik 1973 (2P) | Ogaden 1977 (4P) | Khe Sanh 1968 (2P) |
+  | Danish Straits 1983 (2P, islands) | Kuril Islands 1978 (4P, archipelago) | Shatt al-Arab 1980 (2P, delta) | Quemoy Strait 1958 (2P, sea crossing) |
 
-  Terrain includes rivers and canals with bridges, frozen lakes you can drive across, ruined city blocks, mountain ridges, and dense jungle. Each biome has its own ground, trees, and rocks.
+  Terrain includes island maps linked by long bridges (blow the bridges to cut off an island), river deltas, rivers and canals with bridges, frozen lakes you can drive across, ruined city blocks, mountain ridges, and dense jungle. Each biome has its own ground, trees, and rocks.
 
 - **Asymmetric factions, as in RA2:**
 
@@ -147,7 +148,7 @@ All units and buildings use sprites rendered from 3D models in Blender, in the s
 shared/   game simulation shared by server and browser
   data.js         factions, countries, units, buildings, weapons
   map.js          terrain types, movement classes, random map generator
-  maps.js         the 16 historical scenario maps
+  maps.js         the 20 historical scenario maps
   pathfinding.js  A* pathfinding
   game.js         authoritative simulation (15 ticks/sec)
   ai.js           computer opponent

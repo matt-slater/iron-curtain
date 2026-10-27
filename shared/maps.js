@@ -81,6 +81,18 @@ class MapBuilder {
     this.line(pts, w + 1.3, T.SAND, 0.25, [T.GRASS, T.TREE, T.ROCK]);
     this.line(pts, w, T.WATER, 0.25);
   }
+  // Flood the whole map (island maps start from open water).
+  sea() { this.t.fill(T.WATER); }
+  // Island of radius r with a sandy beach; only replaces water/beach so islands can overlap features.
+  island(cx, cy, r, wob = 0.25, beach = 1.3) {
+    this.disc(cx, cy, r + beach, T.SAND, wob, [T.WATER]);
+    this.disc(cx, cy, r, T.GRASS, wob, [T.WATER, T.SAND]);
+  }
+  // Land where test(px, py) holds on the canonical side (coastlines), with a beach strip.
+  land(test, beachTest = null) {
+    this.shape((px, py) => (beachTest || test)(px, py), (x, y) => { if (this.get(x, y) === T.WATER) this.set(x, y, T.SAND); });
+    this.shape(test, (x, y) => { if (this.get(x, y) === T.WATER || this.get(x, y) === T.SAND) this.set(x, y, T.GRASS); });
+  }
   // Bridge from a to b: water becomes bridge, everything else along it is cleared.
   bridge(a, b, w = 1) {
     this.shape((px, py) => segDist(px, py, a[0], a[1], b[0], b[1]) <= w, (x, y) => {
@@ -568,6 +580,103 @@ export const MAPS = [
       baseOre(b, 0.13);
       b.ore(f(0.42), f(0.3), 2.8, 820);
       b.derrick(f(0.26), f(0.48));
+    },
+  },
+
+  // ---------------- ISLANDS & STRAITS ----------------
+  {
+    id: 'danish', name: 'Danish Straits', year: 1983, place: 'Denmark', biome: 'temperate', players: 2, n: 72, sym: 'point',
+    desc: 'The Baltic Approaches. Home islands linked by long road bridges to a central island town and contested islets with oil.',
+    build(b) {
+      b.sea();
+      b.start(11, 11);
+      b.island(11, 11, 14, 0.2);           // home island
+      b.island(39, 9, 6.5);                 // north islet
+      b.island(9, 39, 6.5);                 // west islet
+      b.island(61, 11, 7);                  // far corner islet (contested, mirrored at 10,60)
+      b.island(35.5, 35.5, 10, 0.2);        // central island (self-symmetric)
+      b.noise(T.TREE, 5, 0.66);
+      b.bridge([23, 10], [34, 9], 1);
+      b.bridge([10, 23], [9, 34], 1);
+      b.bridge([45, 10], [55, 11], 1);
+      b.bridge([61, 18], [62, 27], 1);
+      b.bridge([38, 15], [36, 27], 1);
+      b.bridge([15, 38], [27, 36], 1);
+      b.city(35.5, 35.5, 6.5, 0.8);
+      baseOre(b, 0.13);
+      b.ore(40, 8, 2.6, 800);
+      b.ore(8, 40, 2.6, 800);
+      b.ore(63, 9, 2.4, 900);
+      b.derrick(59, 12);
+    },
+  },
+  {
+    id: 'kurils', name: 'Kuril Islands', year: 1978, place: 'Sea of Okhotsk', biome: 'arctic', players: 4, n: 84, sym: 'rot4',
+    desc: 'A frozen archipelago claimed by both blocs. Four island bases ring a central volcano island, joined by a chain of bridges.',
+    build(b) {
+      b.sea();
+      b.start(11, 11);
+      b.island(11, 11, 14, 0.2);           // home island (one per corner)
+      b.island(41.5, 10, 7);                // edge island between two bases
+      b.island(41.5, 41.5, 11, 0.2);        // central island
+      b.noise(T.TREE, 5, 0.64);
+      b.noise(T.ROCK, 6, 0.78);
+      b.bridge([24, 11], [35, 10], 1);
+      b.bridge([48, 10], [59, 11], 1);
+      b.bridge([41.5, 17], [41.5, 31], 1);
+      b.disc(41.5, 41.5, 3, T.ROCK, 0.3, [T.GRASS, T.TREE]);
+      baseOre(b, 0.12);
+      b.ore(41.5, 8, 2.6, 820);
+      b.ore(36, 46, 2.6, 900);
+      b.derrick(30, 38);
+    },
+  },
+  {
+    id: 'shatt', name: 'Shatt al-Arab', year: 1980, place: 'Iran-Iraq border', biome: 'desert', players: 2, n: 68, sym: 'point',
+    desc: 'The disputed delta at the head of the Persian Gulf. Wide channels split the marshland into islands linked by pontoon bridges.',
+    build(b) {
+      const c = b.c, n1 = b.n1;
+      b.start(9, 9);
+      b.noise(T.TREE, 4, 0.7);
+      b.river([[0, 24], [20, 30], [c, c]], 2.4);
+      b.river([[24, 0], [30, 20], [c, c]], 2.4);
+      b.river([[0, 48], [18, 50], [30, 44]], 2.2);
+      b.river([[48, 0], [50, 18], [44, 30]], 2.2);
+      b.disc(c, c, 6, T.WATER, 0.3);
+      b.island(c, c, 3, 0.2, 0.8);
+      b.bridge([20, 26], [20, 35], 1);
+      b.bridge([26, 20], [35, 20], 1);
+      b.bridge([14, 45], [14, 54], 1);
+      b.bridge([45, 14], [54, 14], 1);
+      b.bridge([c - 9, c - 9], [c + 9, c + 9], 1);
+      b.city(14, 32, 4.5, 0.75);
+      baseOre(b, 0.12);
+      b.ore(10, 38, 2.6, 800);
+      b.ore(38, 10, 2.6, 800);
+      b.derrick(26, 42);
+    },
+  },
+  {
+    id: 'quemoy', name: 'Quemoy Strait', year: 1958, place: 'Taiwan Strait', biome: 'jungle', players: 2, n: 68, sym: 'point',
+    desc: 'The Second Taiwan Strait Crisis. Two coasts face each other across open sea, connected only through a chain of fortified islands.',
+    build(b) {
+      const c = b.c;
+      b.sea();
+      b.start(9, 9);
+      const coast = (px, py) => 44 + b.wobble(px, py) * 9 + Math.sin(px * 0.35) * 2;
+      b.land((px, py) => px + py < coast(px, py), (px, py) => px + py < coast(px, py) + 2.5);
+      b.island(c, c, 6.5, 0.2);             // Kinmen
+      b.island(21, 46, 4.5);                 // flank islets
+      b.island(46, 21, 4.5);
+      b.noise(T.TREE, 5, 0.55);
+      b.bridge([19, 19], [29, 29], 1);
+      b.bridge([14, 32], [19, 42], 1);
+      b.bridge([25, 42], [29, 38], 1);
+      b.city(30, 8, 5, 0.75);
+      baseOre(b, 0.12);
+      b.ore(21, 46, 2.2, 900);
+      b.ore(26, 6, 2.6, 800);
+      b.derrick(c - 2, c - 2);
     },
   },
 ];
