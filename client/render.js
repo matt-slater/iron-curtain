@@ -153,6 +153,151 @@ export class Renderer {
     }
   }
 
+  // Per-tile colour/lighting caches for the smooth ground (rebuilt when bridges fall or are repaired).
+  groundCache() {
+    const s = this.s;
+    if (this.gcFor === s && this.gcVer === s.terrainVersion) return this.gc;
+    const { w, h } = s, n = w * h;
+    const rgb = new Float32Array(n * 3);
+    const toRgb = str => str[0] === '#' ? [parseInt(str.slice(1, 3), 16), parseInt(str.slice(3, 5), 16), parseInt(str.slice(5, 7), 16)] : str.match(/\d+/g).map(Number);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const c = toRgb(this.tileColor(x, y)), i = (y * w + x) * 3;
+      rgb[i] = c[0]; rgb[i + 1] = c[1]; rgb[i + 2] = c[2];
+    }
+    // smooth slope lighting at tile corners (central differences), light from the upper left of the screen
+    const CW = w + 1, L = new Float32Array(CW * (h + 1)), H = s.hgt;
+    const hc = (x, y) => (H ? H[Math.max(0, Math.min(h, y)) * CW + Math.max(0, Math.min(w, x))] : 0);
+    for (let y = 0; y <= h; y++) for (let x = 0; x <= w; x++) {
+      const gx = (hc(x + 1, y) - hc(x - 1, y)) / 2, gy = (hc(x, y + 1) - hc(x, y - 1)) / 2;
+      L[y * CW + x] = Math.max(0.55, Math.min(1.35, 1 + 0.2 * gx - 0.12 * gy)) * (1 + 0.035 * hc(x, y));
+    }
+    const B = BIOME[s.biome] || BIOME.temperate;
+    const shoreRgb = B.shore.match(/[\d.]+/g).map(Number);
+    this.gc = { rgb, L, sand: toRgb(B.sand), bed: toRgb(shade(B.sand, 0.55)), shore: shoreRgb };
+    this.gcFor = s; this.gcVer = s.terrainVersion;
+    return this.gc;
+  }
+
+  // Smooth ground: a 4x4 sub-cell mesh per tile with colours and lighting blended between tile centres,
+  // and sand / water / ice drawn as noisy marching-squares layers so edges curve instead of following
+  // the tile diamonds. Beaches get a wet band, water gets shallows and a foam line.
+  paintGround(ctx, cx, cy) {
+    const s = this.s, { w, h } = s, G = this.groundCache();
+    // paint one tile past the chunk on every side so neighbouring chunks overlap (no seams)
+    const R = 4, MG = 1, x0 = cx * CH - MG, y0 = cy * CH - MG, N = (CH + 2 * MG) * R + 1;
+    const tw = Math.min(CH + 2 * MG, w + MG - x0), th = Math.min(CH + 2 * MG, h + MG - y0);
+    if (tw <= 0 || th <= 0) return;
+    const M = N * N;
+    const PX = new Float32Array(M), PY = new Float32Array(M), LT = new Float32Array(M);
+    const base = new Float32Array(M * 3), sandC = new Float32Array(M * 3), watC = new Float32Array(M * 3);
+    const fS = new Float32Array(M), fW = new Float32Array(M), fI = new Float32Array(M), nz = new Float32Array(M);
+    const terr = s.terrain, CW = w + 1;
+    const cls = t => (t === T.WATER || t === T.BRIDGE ? 1 : t === T.ICE ? 2 : t === T.SAND ? 3 : 0);
+    const vn = (x, y) => {
+      const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi;
+      const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+      const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
+      return (a + (b - a) * sx) * (1 - sy) + (c + (d - c) * sx) * sy;
+    };
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const u = x0 + i / R, v = y0 + j / R, k = j * N + i;
+      const z = gzGround(u, v);
+      const [X, Y] = isoFlat(u, v, z);
+      PX[k] = X; PY[k] = Y;
+      // lighting from the corner grid
+      const cu = Math.min(w - 1e-6, Math.max(0, u)), cv = Math.min(h - 1e-6, Math.max(0, v));
+      const lx = Math.floor(cu), ly = Math.floor(cv), ax = cu - lx, ay = cv - ly;
+      LT[k] = (G.L[ly * CW + lx] * (1 - ax) + G.L[ly * CW + lx + 1] * ax) * (1 - ay) + (G.L[(ly + 1) * CW + lx] * (1 - ax) + G.L[(ly + 1) * CW + lx + 1] * ax) * ay;
+      // bilinear over the 4 nearest tile centres
+      const fu = u - 0.5, fv = v - 0.5, ti = Math.floor(fu), tj = Math.floor(fv), bx = fu - ti, by = fv - tj;
+      let lw = 0, sw = 0, ww = 0, ws = 0, wi = 0, ss = 0;
+      let br = 0, bg = 0, bb = 0, sr = 0, sg = 0, sb = 0, wr = 0, wg = 0, wb = 0;
+      for (let q = 0; q < 4; q++) {
+        const tx = Math.max(0, Math.min(w - 1, ti + (q & 1))), ty = Math.max(0, Math.min(h - 1, tj + (q >> 1)));
+        const wt = ((q & 1) ? bx : 1 - bx) * ((q >> 1) ? by : 1 - by);
+        const t = ty * w + tx, c = cls(terr[t]), r3 = t * 3;
+        if (c === 0) { lw += wt; br += G.rgb[r3] * wt; bg += G.rgb[r3 + 1] * wt; bb += G.rgb[r3 + 2] * wt; }
+        else if (c === 3) { ss += wt; sw += wt; sr += G.rgb[r3] * wt; sg += G.rgb[r3 + 1] * wt; sb += G.rgb[r3 + 2] * wt; }
+        else if (c === 1) { ws += wt; ww += wt; wr += G.rgb[r3] * wt; wg += G.rgb[r3 + 1] * wt; wb += G.rgb[r3 + 2] * wt; }
+        else { wi += wt; ww += wt; wr += G.rgb[r3] * wt; wg += G.rgb[r3 + 1] * wt; wb += G.rgb[r3 + 2] * wt; }
+      }
+      const k3 = k * 3;
+      if (lw > 0.001) { base[k3] = br / lw; base[k3 + 1] = bg / lw; base[k3 + 2] = bb / lw; }
+      else if (sw > 0.001) { base[k3] = sr / sw * 0.9; base[k3 + 1] = sg / sw * 0.9; base[k3 + 2] = sb / sw * 0.9; }
+      else { base[k3] = G.bed[0]; base[k3 + 1] = G.bed[1]; base[k3 + 2] = G.bed[2]; }
+      if (sw > 0.001) { sandC[k3] = sr / sw; sandC[k3 + 1] = sg / sw; sandC[k3 + 2] = sb / sw; }
+      else { sandC[k3] = G.sand[0]; sandC[k3 + 1] = G.sand[1]; sandC[k3 + 2] = G.sand[2]; }
+      if (ww > 0.001) { watC[k3] = wr / ww; watC[k3 + 1] = wg / ww; watC[k3 + 2] = wb / ww; }
+      fS[k] = ss; fW[k] = ws; fI[k] = wi;
+      nz[k] = vn(u * 2.3, v * 2.3) * 0.65 + vn(u * 5.1 + 7, v * 5.1 + 3) * 0.35 - 0.5;
+    }
+    const col = (C, a, b, c, d, lit) => {
+      const r = (C[a * 3] + C[b * 3] + C[c * 3] + C[d * 3]) / 4 * lit, g = (C[a * 3 + 1] + C[b * 3 + 1] + C[c * 3 + 1] + C[d * 3 + 1]) / 4 * lit, bl = (C[a * 3 + 2] + C[b * 3 + 2] + C[c * 3 + 2] + C[d * 3 + 2]) / 4 * lit;
+      return `rgb(${Math.min(255, r) | 0},${Math.min(255, g) | 0},${Math.min(255, bl) | 0})`;
+    };
+    const E = 0.55; // grow polygons slightly to hide anti-aliasing seams
+    const fillPoly = pts => {
+      let mx = 0, my = 0;
+      for (const p of pts) { mx += p[0]; my += p[1]; }
+      mx /= pts.length; my /= pts.length;
+      ctx.beginPath();
+      pts.forEach((p, q) => {
+        const dx = p[0] - mx, dy = p[1] - my, dl = Math.hypot(dx, dy) || 1;
+        const X = p[0] + dx / dl * E, Y = p[1] + dy / dl * E;
+        q ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+      });
+      ctx.closePath(); ctx.fill();
+    };
+    // marching squares on one sub-cell: returns [polygon, contour segments] for value > 0
+    const march = (ids, vals) => {
+      const poly = [], cut = [];
+      for (let q = 0; q < 4; q++) {
+        const a = ids[q], b = ids[(q + 1) & 3], va = vals[q], vb = vals[(q + 1) & 3];
+        if (va > 0) poly.push([PX[a], PY[a]]);
+        if ((va > 0) !== (vb > 0)) {
+          const t = va / (va - vb);
+          const p = [PX[a] + (PX[b] - PX[a]) * t, PY[a] + (PY[b] - PY[a]) * t];
+          poly.push(p); cut.push(p);
+        }
+      }
+      return [poly, cut];
+    };
+    const foam = [];
+    const layers = [
+      // [field, threshold, noise amp, colour fn]
+      { f: fS, th: 0.5, amp: 0.2, color: (q, lit) => col(sandC, ...q, lit) },
+      { f: fW, th: 0.3, amp: 0.32, color: () => `rgba(${G.shore[0]},${G.shore[1]},${G.shore[2]},${G.shore[3] ?? 1})`, wet: true },
+      { f: fW, th: 0.5, amp: 0.32, color: (q, lit, v) => col(watC, ...q, 1.1 - 0.18 * Math.min(1, Math.max(0, (v - 0.5) * 2))), foam: true },
+      { f: fI, th: 0.5, amp: 0.25, color: (q, lit) => col(watC, ...q, lit) },
+    ];
+    for (let j = 0; j < th * R; j++) for (let i = 0; i < tw * R; i++) {
+      const a = j * N + i, b = a + 1, c = a + N + 1, d = a + N;
+      const q = [a, b, c, d];
+      const lit = (LT[a] + LT[b] + LT[c] + LT[d]) / 4;
+      ctx.fillStyle = col(base, a, b, c, d, lit);
+      fillPoly(q.map(k => [PX[k], PY[k]]));
+      for (const Lr of layers) {
+        const F = Lr.f;
+        if (F[a] + F[b] + F[c] + F[d] === 0) continue;
+        const vals = q.map(k => F[k] + nz[k] * Lr.amp - Lr.th);
+        if (vals.every(v => v <= 0)) continue;
+        const [poly, cut] = march(q, vals);
+        if (poly.length < 3) continue;
+        ctx.fillStyle = Lr.color(q, lit, (F[a] + F[b] + F[c] + F[d]) / 4);
+        fillPoly(poly);
+        if (Lr.foam && cut.length >= 2) foam.push(cut);
+      }
+    }
+    // foam / surf line along the waterline
+    if (foam.length) {
+      ctx.strokeStyle = 'rgba(205,220,215,0.4)'; ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (const cut of foam) for (let k = 0; k + 1 < cut.length; k += 2) { ctx.moveTo(cut[k][0], cut[k][1]); ctx.lineTo(cut[k + 1][0], cut[k + 1][1]); }
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+  }
+
   buildChunk(cx, cy, S) {
     const s = this.s;
     const c = document.createElement('canvas');
@@ -167,6 +312,7 @@ export class Renderer {
     const HGT = s.hgt, CW = s.w + 1;
     const cz = (x, y) => (HGT ? HGT[y * CW + x] * LEVEL_PX : 0);
     const dot = (x, y, w, h, col) => { ctx.fillStyle = col; ctx.fillRect(x, y, w / S, h / S); };
+    this.paintGround(ctx, cx, cy);
     for (let y = cy * CH; y < Math.min(s.h, cy * CH + CH); y++) {
       for (let x = cx * CH; x < Math.min(s.w, cx * CH + CH); x++) {
         const [px, py] = isoFlat(x, y);
@@ -175,11 +321,11 @@ export class Renderer {
         // slope lighting: light comes from the upper left of the screen (the -x side)
         const gx = (zb + zc - za - zd) / (2 * LEVEL_PX), gy = (zc + zd - za - zb) / (2 * LEVEL_PX);
         const avg = (za + zb + zc + zd) / 4;
-        const lit = Math.max(0.55, Math.min(1.35, 1 + 0.16 * gx - 0.1 * gy)) * (1 + 0.035 * avg / LEVEL_PX);
-        ctx.fillStyle = shade(this.tileColor(x, y), lit);
+        void gx; void gy;
+        // the smooth ground mesh is already painted; this pass only adds per-tile detail
         ctx.beginPath();
         ctx.moveTo(px, py - za - 0.7); ctx.lineTo(px + HW + 0.7, py + HH - zb); ctx.lineTo(px, py + 2 * HH - zc + 0.7); ctx.lineTo(px - HW - 0.7, py + HH - zd);
-        ctx.closePath(); ctx.fill();
+        ctx.closePath();
         ctx.save(); ctx.clip();
         if (t === T.CLIFF) {
           // rock strata running along the cliff face
@@ -216,17 +362,7 @@ export class Renderer {
           if (v % 9 === 0) { ctx.strokeStyle = 'rgba(30,22,12,0.5)'; ctx.beginPath(); ctx.moveTo(px - 20, py + HH - 2); ctx.lineTo(px + 18, py + HH + 4); ctx.stroke(); }
         } else if (t === T.WATER || t === T.BRIDGE) {
           for (let k = 0; k < 8; k++) dot(px + (R(k, 6) - 0.5) * HW * 1.6, py + HH + (R(7, k) - 0.5) * HH * 1.6, 3, 1, 'rgba(90,120,130,0.25)');
-          const land = (nx, ny) => { if (nx < 0 || ny < 0 || nx >= s.w || ny >= s.h) return false; const tt = s.terrain[ny * s.w + nx]; return tt !== T.WATER && tt !== T.BRIDGE && tt !== T.ICE; };
-          const edges = [[x - 1, y, [px - HW, py + HH], [px, py]], [x, y - 1, [px, py], [px + HW, py + HH]], [x + 1, y, [px + HW, py + HH], [px, py + 2 * HH]], [x, y + 1, [px, py + 2 * HH], [px - HW, py + HH]]];
-          for (const [nx, ny, a, b] of edges) {
-            if (!land(nx, ny)) continue;
-            ctx.strokeStyle = (BIOME[s.biome] || BIOME.temperate).shore; ctx.lineWidth = 10;
-            ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
-            ctx.strokeStyle = 'rgba(30,24,14,0.6)'; ctx.lineWidth = 3;
-            const k = 0.18, cxp = px, cyp = py + HH;
-            ctx.beginPath(); ctx.moveTo(a[0] + (cxp - a[0]) * k, a[1] + (cyp - a[1]) * k); ctx.lineTo(b[0] + (cxp - b[0]) * k, b[1] + (cyp - b[1]) * k); ctx.stroke();
-          }
-          ctx.lineWidth = 1;
+
           if (s.brokenBridgeTile(y * s.w + x)) {
             // wreckage of a destroyed bridge: broken pilings and floating planks
             for (let k = 0; k < 2; k++) {
