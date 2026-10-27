@@ -53,7 +53,7 @@ export class Renderer {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.s = state;
-    this.zoom = 1.5;
+    this.zoom = 1.25;
     this.camX = 0; this.camY = 0;
     this.low = document.createElement('canvas');
     this.lctx = this.low.getContext('2d', { willReadFrequently: true });

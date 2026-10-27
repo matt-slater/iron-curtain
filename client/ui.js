@@ -420,7 +420,7 @@ export class GameUI {
     if (this.keys.has('ArrowDown')) dy += sp;
     if (this.mouse.in && !this.rightDown && !this.drag && document.hasFocus()) {
       // wide edge-scroll zone; speed ramps up the closer the cursor gets to the edge
-      const m = Math.max(40, Math.min(this.r.vw, this.r.vh) * 0.05);
+      const m = Math.max(70, Math.min(this.r.vw, this.r.vh) * 0.09);
       const pull = d => d < m ? 0.35 + 0.65 * (1 - Math.max(0, d) / m) : 0;
       dx += sp * (pull(this.r.vw - this.mouse.x) - pull(this.mouse.x));
       dy += sp * (pull(this.r.vh - this.mouse.y) - pull(this.mouse.y));
