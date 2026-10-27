@@ -93,12 +93,43 @@ class MapBuilder {
     this.shape((px, py) => (beachTest || test)(px, py), (x, y) => { if (this.get(x, y) === T.WATER) this.set(x, y, T.SAND); });
     this.shape(test, (x, y) => { if (this.get(x, y) === T.WATER || this.get(x, y) === T.SAND) this.set(x, y, T.GRASS); });
   }
-  // Bridge from a to b: water becomes bridge, everything else along it is cleared.
-  bridge(a, b, w = 1) {
-    this.shape((px, py) => segDist(px, py, a[0], a[1], b[0], b[1]) <= w, (x, y) => {
-      const t = this.get(x, y);
-      this.set(x, y, t === T.WATER || t === T.ICE ? T.BRIDGE : t === T.SAND ? T.SAND : T.GRASS);
-    });
+  // RA2-style bridge: straight along one grid axis, 2 tiles wide, crossing the water near the midpoint
+  // of a-b and ending in a ramp (abutment) row on dry land at both ends. Built on the canonical side
+  // and copied to every mirror image, so it stays fair.
+  bridge(a, b) {
+    const n = this.n;
+    const wet = t => t === T.WATER || t === T.ICE || t === T.BRIDGE;
+    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    const plan = ax => {
+      const um = ax === 'x' ? mx : my, vm = ax === 'x' ? my : mx;
+      const lo = Math.round(vm - 0.5);
+      const at = (u, k) => { const x = ax === 'x' ? u : lo + k, y = ax === 'x' ? lo + k : u; return x < 0 || y < 0 || x >= n || y >= n ? -1 : this.get(x, y); };
+      const rowWet = u => at(u, 0) >= 0 && at(u, 1) >= 0 && (wet(at(u, 0)) || wet(at(u, 1)));
+      const rowLand = u => at(u, 0) >= 0 && at(u, 1) >= 0 && !wet(at(u, 0)) && !wet(at(u, 1));
+      let st = null;
+      for (let d = 0; d <= 4 && st === null; d++) for (const u of [Math.floor(um) + d, Math.floor(um) - d]) if (rowWet(u)) { st = u; break; }
+      if (st === null) return null;
+      let s0 = st, s1 = st;
+      while (rowWet(s0 - 1)) s0--;
+      while (rowWet(s1 + 1)) s1++;
+      if (!rowLand(s0 - 1) || !rowLand(s1 + 1)) return null;
+      return { ax, lo, s0, s1, len: s1 - s0 + 1 };
+    };
+    const dx = Math.abs(b[0] - a[0]), dy = Math.abs(b[1] - a[1]);
+    const px = plan('x'), py = plan('y');
+    let p = null;
+    if (dx > dy * 1.4) p = px || py;
+    else if (dy > dx * 1.4) p = py || px;
+    else p = px && py ? (px.len <= py.len ? px : py) : px || py;
+    if (!p) return;
+    const put = (u, k, fn) => {
+      const x = p.ax === 'x' ? u : p.lo + k, y = p.ax === 'x' ? p.lo + k : u;
+      for (const f of this.fwd) { const [X, Y] = f(x, y); if (X >= 0 && Y >= 0 && X < n && Y < n) fn(X, Y); }
+    };
+    for (let u = p.s0; u <= p.s1; u++) for (const k of [0, 1]) put(u, k, (X, Y) => { this.set(X, Y, T.BRIDGE); this.noCiv[Y * n + X] = 1; });
+    // ramps rest on a road row at each end; keep the approaches clear of town buildings
+    for (const u of [p.s0 - 1, p.s1 + 1]) for (const k of [0, 1]) put(u, k, (X, Y) => this.set(X, Y, T.SAND));
+    for (let u = p.s0 - 3; u <= p.s1 + 3; u++) for (let k = -1; k <= 2; k++) put(u, k, (X, Y) => { this.noCiv[Y * n + X] = 1; });
   }
   // Clear an area; nothing civilian is built there (bases, checkpoints, plazas).
   clear(cx, cy, r, type = T.GRASS) {
@@ -536,9 +567,9 @@ export const MAPS = [
       b.noise(T.TREE, 5, 0.56);
       b.river([[c, c], [f(0.6), f(0.36)], [f(0.7), f(0.16)], [f(0.72), 0]], 1.3);
       b.river([[f(0.6), f(0.36)], [f(0.84), f(0.42)], [n1, f(0.38)]], 0.8);
+      for (const [x, y] of [[0.3, 0.42], [0.38, 0.3], [0.22, 0.32], [0.46, 0.44]]) b.disc(f(x), f(y), 1.3, T.WATER, 0.2);
       b.bridge([f(0.66) - 3, f(0.24)], [f(0.66) + 3, f(0.24)], 1);
       b.bridge([f(0.76), f(0.4) - 3], [f(0.76), f(0.4) + 3], 1);
-      for (const [x, y] of [[0.3, 0.42], [0.38, 0.3], [0.22, 0.32], [0.46, 0.44]]) b.disc(f(x), f(y), 1.3, T.WATER, 0.2);
       b.city(f(0.36), f(0.36), 6, 0.85);
       baseOre(b, 0.12);
       b.ore(f(0.34), f(0.36), 2.8, 820);
@@ -646,8 +677,7 @@ export const MAPS = [
       b.island(c, c, 3, 0.2, 0.8);
       b.bridge([20, 26], [20, 35], 1);
       b.bridge([26, 20], [35, 20], 1);
-      b.bridge([14, 45], [14, 54], 1);
-      b.bridge([45, 14], [54, 14], 1);
+      b.bridge([10, 44], [10, 54], 1);
       b.bridge([c - 9, c - 9], [c + 9, c + 9], 1);
       b.city(14, 32, 4.5, 0.75);
       baseOre(b, 0.12);
@@ -669,9 +699,8 @@ export const MAPS = [
       b.island(21, 46, 4.5);                 // flank islets
       b.island(46, 21, 4.5);
       b.noise(T.TREE, 5, 0.55);
-      b.bridge([19, 19], [29, 29], 1);
-      b.bridge([14, 32], [19, 42], 1);
-      b.bridge([25, 42], [29, 38], 1);
+      b.bridge([18, 26], [28, 26], 1);     // home coast -> Kinmen
+      b.bridge([16, 35], [16, 44], 1);     // home coast -> flank islet
       b.city(30, 8, 5, 0.75);
       baseOre(b, 0.12);
       b.ore(21, 46, 2.2, 900);

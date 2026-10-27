@@ -3,8 +3,22 @@ import * as D from './shared/data.js';
 import { T, buildable } from './shared/map.js';
 
 // Terrain elevation: every world-space projection in this file sits on the ground surface.
-let HG = null, HGW = 0, HGH = 0;
-const gz = (x, y) => groundZ(HG, HGW, HGH, x, y);
+let HG = null, HGW = 0, HGH = 0, BRS = null, BRIX = null;
+const DECK = 9, DECK_T = 4; // bridge deck height above the water and its thickness (art px)
+// Height of a bridge deck/ramp at a world position (0 off bridges). Ramps keep their shape when the span is destroyed.
+function deckZ(x, y) {
+  if (!BRIX) return 0;
+  const tx = Math.floor(x), ty = Math.floor(y);
+  if (tx < 0 || ty < 0 || tx >= HGW || ty >= HGH) return 0;
+  const k = BRIX[ty * HGW + tx];
+  if (!k) return 0;
+  const b = BRS[k - 1], g = b.geom, u = g.ax === 'x' ? x : y;
+  if (u < g.s0) return DECK * Math.max(0, u - (g.s0 - 1));
+  if (u >= g.s1) return DECK * Math.max(0, 1 - (u - g.s1));
+  return b.hp > 0 ? DECK : 0;
+}
+const gzGround = (x, y) => groundZ(HG, HGW, HGH, x, y);
+const gz = (x, y) => gzGround(x, y) + deckZ(x, y);
 const iso = (x, y, z = 0) => isoFlat(x, y, z + gz(x, y));
 import { HW, HH, iso as isoFlat, shade, buildingSprite, drawBuildingDynamic, drawUnit, drawTree, drawRock, drawRuin } from './sprites.js';
 import { groundZ, flatArea, LEVEL_PX } from './shared/elevation.js';
@@ -82,6 +96,7 @@ export class Renderer {
   // Inverse projection onto the (raised) ground surface: a few fixed-point steps on the height.
   screenToWorld(sx, sy) {
     HG = this.s.hgt; HGW = this.s.w; HGH = this.s.h;
+    this.indexBridges();
     const X = sx / this.zoom + this.camX, Y0 = sy / this.zoom + this.camY;
     let x = (X / HW + Y0 / HH) / 2, y = (Y0 / HH - X / HW) / 2;
     for (let k = 0; k < 4 && HG; k++) {
@@ -199,7 +214,7 @@ export class Renderer {
         } else if (t === T.SAND) {
           for (let k = 0; k < 30; k++) dot(px + (R(k, 3) - 0.5) * HW * 2, py + HH + (R(4, k) - 0.5) * HH * 2, 1, 1, R(k, 5) < 0.5 ? 'rgba(30,20,10,0.4)' : 'rgba(140,120,80,0.3)');
           if (v % 9 === 0) { ctx.strokeStyle = 'rgba(30,22,12,0.5)'; ctx.beginPath(); ctx.moveTo(px - 20, py + HH - 2); ctx.lineTo(px + 18, py + HH + 4); ctx.stroke(); }
-        } else if (t === T.WATER) {
+        } else if (t === T.WATER || t === T.BRIDGE) {
           for (let k = 0; k < 8; k++) dot(px + (R(k, 6) - 0.5) * HW * 1.6, py + HH + (R(7, k) - 0.5) * HH * 1.6, 3, 1, 'rgba(90,120,130,0.25)');
           const land = (nx, ny) => { if (nx < 0 || ny < 0 || nx >= s.w || ny >= s.h) return false; const tt = s.terrain[ny * s.w + nx]; return tt !== T.WATER && tt !== T.BRIDGE && tt !== T.ICE; };
           const edges = [[x - 1, y, [px - HW, py + HH], [px, py]], [x, y - 1, [px, py], [px + HW, py + HH]], [x + 1, y, [px + HW, py + HH], [px, py + 2 * HH]], [x, y + 1, [px, py + 2 * HH], [px - HW, py + HH]]];
@@ -229,7 +244,7 @@ export class Renderer {
           ctx.strokeStyle = 'rgba(20,40,50,0.3)';
           ctx.beginPath(); ctx.moveTo(px - 6, py + HH + 6); ctx.lineTo(px + 8, py + HH + 3); ctx.stroke();
           for (let k = 0; k < 10; k++) dot(px + (R(k, 4) - 0.5) * HW * 1.8, py + HH + (R(3, k) - 0.5) * HH * 1.8, 2, 1, 'rgba(220,235,240,0.3)');
-        } else if (t === T.BRIDGE) {
+        } else if (false) {
           ctx.fillStyle = '#4a3a28';
           ctx.beginPath(); ctx.moveTo(px, py + 3); ctx.lineTo(px + HW - 4, py + HH); ctx.lineTo(px, py + 2 * HH - 3); ctx.lineTo(px - HW + 4, py + HH); ctx.closePath(); ctx.fill();
           ctx.strokeStyle = 'rgba(20,14,8,0.6)';
@@ -253,6 +268,7 @@ export class Renderer {
   draw(now, ui) {
     const s = this.s;
     HG = s.hgt; HGW = s.w; HGH = s.h;
+    this.indexBridges();
     const ctx = this.lctx;
     this.time = now / 1000;
     s.interpolate(now);
@@ -345,6 +361,18 @@ export class Renderer {
       const t = s.terrain[y * s.w + x];
       if ((t === T.TREE || t === T.ROCK || t === T.RUIN) && s.explored[y * s.w + x] && onScreen(x + 0.5, y + 0.5)) objs.push({ d: x + y + 1, k: 't', x, y, t });
     }
+    for (const b of s.bridges) {
+      if (!b.geom) continue;
+      const g = b.geom;
+      for (let u = g.s0 - 1; u <= g.s1; u++) {
+        const ramp = u < g.s0 || u >= g.s1;
+        if (!ramp && b.hp <= 0) continue;
+        const cx = g.ax === 'x' ? u + 0.5 : (g.l0 + g.l1) / 2, cy = g.ax === 'x' ? (g.l0 + g.l1) / 2 : u + 0.5;
+        const ti = Math.floor(cy) * s.w + Math.floor(cx);
+        if (!s.explored[ti] || !onScreen(cx, cy)) continue;
+        objs.push({ d: cx + cy - 0.9, k: 'br', b, u });
+      }
+    }
     const air = [];
     for (const e of s.ents.values()) {
       if (e.kind === 'b') {
@@ -373,7 +401,8 @@ export class Renderer {
         else if (o.t === T.RUIN) drawRuin(ctx, o.x, o.y, v, s.biome);
         else drawRock(ctx, o.x + 0.5, o.y + 0.5, v, s.biome);
         ctx.restore();
-      } else if (o.k === 'b' || o.k === 'g') this.drawBuilding(ctx, o.e, o.k === 'g', ui);
+      } else if (o.k === 'br') this.drawBridgeSlice(ctx, o.b, o.u);
+      else if (o.k === 'b' || o.k === 'g') this.drawBuilding(ctx, o.e, o.k === 'g', ui);
       else this.drawUnitEnt(ctx, o.e, ui);
     }
 
@@ -711,6 +740,66 @@ export class Renderer {
       }
       ctx.restore();
     }
+  }
+
+  indexBridges() {
+    const s = this.s;
+    if (this.brIndexFor === s) { BRS = s.bridges; BRIX = this.brIx; return; }
+    const ix = new Uint16Array(s.w * s.h);
+    s.bridges.forEach((b, k) => {
+      if (!b.geom) return;
+      const g = b.geom;
+      for (let u = g.s0 - 1; u <= g.s1; u++) for (let v = g.l0; v < g.l1; v++) {
+        const x = g.ax === 'x' ? u : v, y = g.ax === 'x' ? v : u;
+        if (x >= 0 && y >= 0 && x < s.w && y < s.h) ix[y * s.w + x] = k + 1;
+      }
+    });
+    this.brIndexFor = s; this.brIx = ix; BRS = s.bridges; BRIX = ix;
+  }
+
+  // One 1-tile slice (across the full 2-tile width) of an RA2-style bridge: piers, deck, railings.
+  drawBridgeSlice(ctx, b, u) {
+    const g = b.geom;
+    const P = (uu, v, z) => { const x = g.ax === 'x' ? uu : v, y = g.ax === 'x' ? v : uu; return isoFlat(x, y, z + gzGround(x, y)); };
+    const zAt = uu => uu <= g.s0 - 1 ? 0 : uu < g.s0 ? DECK * (uu - (g.s0 - 1)) : uu <= g.s1 ? DECK : DECK * Math.max(0, 1 - (uu - g.s1));
+    const ramp = u < g.s0 || u >= g.s1;
+    const u0 = u, u1 = u + 1, z0 = zAt(u0), z1 = zAt(u1);
+    const l0 = g.l0 - 0.08, l1 = g.l1 + 0.08;
+    const quad = (pts, fill) => { ctx.fillStyle = fill; ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.fill(); };
+    const concrete = '#8a867a', dark = '#4c4a44', deckC = '#5e5c56';
+    // piers every other tile under the span
+    if (!ramp && (u - g.s0) % 2 === 0) {
+      for (const v of [g.l0 + 0.35, g.l1 - 0.35]) {
+        const a = P(u0 + 0.35, v - 0.18, -3), bb = P(u0 + 0.65, v - 0.18, -3), c = P(u0 + 0.65, v + 0.18, -3);
+        quad([a, bb, [bb[0], bb[1] - DECK + 1], [a[0], a[1] - DECK + 1]], '#6a665c');
+        quad([bb, c, [c[0], c[1] - DECK + 1], [bb[0], bb[1] - DECK + 1]], '#4e4b44');
+      }
+    }
+    // deck underside / front side faces (visible sides face +u for x-axis bridges and +v)
+    const sideV = [P(u0, l1, z0), P(u1, l1, z1), P(u1, l1, z1 - DECK_T), P(u0, l1, z0 - DECK_T)];
+    if (z0 > 0 || z1 > 0) quad(sideV, dark);
+    if (u === g.s1 && b.hp > 0) quad([P(u0, l0, z0), P(u0, l1, z0), P(u0, l1, z0 - DECK_T), P(u0, l0, z0 - DECK_T)], '#3e3c38');
+    // deck surface
+    quad([P(u0, l0, z0), P(u1, l0, z1), P(u1, l1, z1), P(u0, l1, z0)], ramp ? concrete : deckC);
+    // lane markings and expansion joints
+    ctx.strokeStyle = 'rgba(210,190,110,0.55)'; ctx.lineWidth = 1.2;
+    const mid = (g.l0 + g.l1) / 2;
+    const m0 = P(u0 + 0.2, mid, z0 + (z1 - z0) * 0.2), m1 = P(u0 + 0.6, mid, z0 + (z1 - z0) * 0.6);
+    ctx.beginPath(); ctx.moveTo(m0[0], m0[1]); ctx.lineTo(m1[0], m1[1]); ctx.stroke();
+    ctx.strokeStyle = 'rgba(20,20,18,0.35)'; ctx.lineWidth = 1;
+    const j0 = P(u0, l0, z0), j1 = P(u0, l1, z0);
+    ctx.beginPath(); ctx.moveTo(j0[0], j0[1]); ctx.lineTo(j1[0], j1[1]); ctx.stroke();
+    // railings with posts on both edges
+    for (const v of [l0 + 0.04, l1 - 0.04]) {
+      const a = P(u0, v, z0 + 4), c = P(u1, v, z1 + 4);
+      ctx.strokeStyle = v < mid ? '#9a968a' : '#b4b0a2'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(c[0], c[1]); ctx.stroke();
+      for (const f of [0, 0.5]) {
+        const pb = P(u0 + f, v, z0 + (z1 - z0) * f), pt = P(u0 + f, v, z0 + (z1 - z0) * f + 4);
+        ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(pb[0], pb[1]); ctx.lineTo(pt[0], pt[1]); ctx.stroke();
+      }
+    }
+    ctx.lineWidth = 1;
   }
 
   // Damaged bridges smoke and show a health bar; hovering a bridge with Ctrl held shows it too.

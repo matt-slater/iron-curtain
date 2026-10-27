@@ -35,9 +35,31 @@ export function findBridges(terrain, w, h) {
       }
     }
     tiles.sort((a, b) => a - b);
-    out.push({ tiles });
+    out.push({ tiles, ...bridgeGeom(tiles, terrain, w, h) });
   }
   return out;
+}
+
+// Straight 2-wide bridges: axis ('x' or 'y'), along-span s0..s1 (tile edges, water part),
+// lateral l0..l1, and foot = bridge tiles plus the land ramp row at each end.
+function bridgeGeom(tiles, terrain, w, h) {
+  let minX = w, maxX = -1, minY = h, maxY = -1;
+  for (const i of tiles) { const x = i % w, y = (i - x) / w; minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
+  const ex = maxX - minX + 1, ey = maxY - minY + 1;
+  if (ex * ey !== tiles.length) return { geom: null, foot: tiles.slice() };
+  const dry = (x, y) => x >= 0 && y >= 0 && x < w && y < h && ![T.WATER, T.ICE, T.BRIDGE].includes(terrain[y * w + x]);
+  let ax = null;
+  if (ey === 2 && ex !== 2) ax = 'x';
+  else if (ex === 2 && ey !== 2) ax = 'y';
+  else if (ex === 2 && ey === 2) ax = dry(minX - 1, minY) && dry(minX - 1, minY + 1) ? 'x' : 'y';
+  if (!ax) return { geom: null, foot: tiles.slice() };
+  const geom = ax === 'x' ? { ax, s0: minX, s1: maxX + 1, l0: minY, l1: maxY + 1 } : { ax, s0: minY, s1: maxY + 1, l0: minX, l1: maxX + 1 };
+  const foot = tiles.slice();
+  for (const u of [geom.s0 - 1, geom.s1]) for (let v = geom.l0; v < geom.l1; v++) {
+    const x = ax === 'x' ? u : v, y = ax === 'x' ? v : u;
+    if (x >= 0 && y >= 0 && x < w && y < h) foot.push(y * w + x);
+  }
+  return { geom, foot };
 }
 
 // Widen 1-tile-wide corridors through trees, rocks and rubble so vehicles can pass each other.

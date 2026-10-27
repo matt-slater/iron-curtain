@@ -4,7 +4,7 @@
 //   slope - corners differ by 1 (passable, not buildable)
 //   cliff - corners differ by 2+ (impassable; the terrain is set to T.CLIFF)
 // Everything is derived from the already-symmetric terrain plus symmetric noise, so maps stay fair.
-import { T, mulberry32, fractal, terrainPassable, MOVE } from './map.js';
+import { T, mulberry32, fractal, terrainPassable, MOVE, findBridges } from './map.js';
 
 export const LEVEL_PX = 12;
 const PLATEAU = 2, HILL = 1;
@@ -37,6 +37,7 @@ export function elevate(map, seed, sym) {
   for (const d of map.derricks) mark(d.x - 2, d.y - 2, d.x + 3, d.y + 3);
   const SZ = { house: [2, 2], tenement: [2, 3], tenementB: [3, 2], office: [3, 3] };
   for (const c of map.civ || []) { const [fw, fh] = SZ[c.type] || [3, 3]; mark(c.x - 1, c.y - 1, c.x + fw, c.y + fh); }
+  for (const br of findBridges(terrain, w, h)) for (const i of br.foot) { const x = i % w, y = (i - x) / w; mark(x - 2, y - 2, x + 2, y + 2); }
   // a tile is excluded if any of its mirror images is (keeps heights symmetric even on uneven terrain)
   const img = i => { const x = i % w, y = (i - x) / w; return fwd.map(f => { const [a, b] = f(x, y); return b * w + a; }); };
   const ex2 = new Uint8Array(excl);

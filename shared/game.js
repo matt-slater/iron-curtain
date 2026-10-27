@@ -174,32 +174,25 @@ export class Game {
   // ---------- bridges (RA2 style: destructible, rebuilt by an engineer at either repair hut) ----------
   setupBridges() {
     this.bridges = findBridges(this.terrain, this.w, this.h).map((b, i) => ({ ...b, id: i, hp: D.BRIDGE_HP, maxHp: D.BRIDGE_HP, huts: [] }));
+    this.bridgeFoot = new Uint8Array(this.w * this.h);
+    for (const br of this.bridges) for (const i of br.foot) this.bridgeFoot[i] = 1;
     for (const br of this.bridges) {
-      if (br.tiles.length < 3) continue;
-      // the two tiles farthest apart are the ends; each end gets a hut on the bank beside the road
-      const xy = i => [i % this.w, Math.floor(i / this.w)];
-      let a = br.tiles[0], b = a, best = -1;
-      for (const i of br.tiles) for (const j of br.tiles) {
-        const [x1, y1] = xy(i), [x2, y2] = xy(j), d = (x1 - x2) ** 2 + (y1 - y2) ** 2;
-        if (d > best) { best = d; a = i; b = j; }
-      }
-      const [ax, ay] = xy(a), [bx, by] = xy(b);
-      const len = Math.hypot(bx - ax, by - ay) || 1;
-      const dx = (bx - ax) / len, dy = (by - ay) / len;
-      for (const [ex, ey, sx] of [[ax, ay, -1], [bx, by, 1]]) {
-        const hut = this.placeHut(ex, ey, dx * sx, dy * sx, br);
+      if (br.tiles.length < 4) continue;
+      const g = br.geom;
+      const ends = g ? [[g.s0 - 1, -1], [g.s1, 1]] : [];
+      for (const [e, dir] of ends) {
+        const hut = this.placeHut(br, g, e, dir);
         if (hut) br.huts.push(hut.id);
       }
     }
   }
 
-  placeHut(ex, ey, dx, dy, br) {
-    const px = -dy, py = dx;
-    const onBridge = new Set(br.tiles);
-    for (let k = 1; k <= 4; k++) for (const m of [2, -2, 3, -3, 4, -4]) {
-      const x = Math.round(ex + dx * k + px * m), y = Math.round(ey + dy * k + py * m);
-      if (!this.inb(x, y) || onBridge.has(this.idx(x, y)) || !buildable(this.terrain[this.idx(x, y)])) continue;
-      if (!this.canPlaceRaw('bridgehut', x, y)) continue;
+  // A repair hut on the bank beside one end of the bridge.
+  placeHut(br, g, e, dir) {
+    for (let k = 0; k <= 3; k++) for (const v of [g.l1 + 1, g.l0 - 2, g.l1 + 2, g.l0 - 3]) {
+      const u = e + dir * k;
+      const x = g.ax === 'x' ? u : v, y = g.ax === 'x' ? v : u;
+      if (!this.inb(x, y) || !buildable(this.terrain[this.idx(x, y)]) || !this.canPlaceRaw('bridgehut', x, y)) continue;
       const h = this.addBuilding('bridgehut', -1, x, y);
       h.bridge = br.id;
       return h;
@@ -360,7 +353,7 @@ export class Game {
     for (let y = ty; y < ty + d.h; y++) for (let x = tx; x < tx + d.w; x++) {
       if (!this.inb(x, y)) return false;
       const i = this.idx(x, y);
-      if (this.bmap[i]) return false;
+      if (this.bmap[i] || (this.bridgeFoot && this.bridgeFoot[i])) return false;
       const t = this.terrain[i];
       if (!buildable(t)) return false;
     }
