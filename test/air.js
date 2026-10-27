@@ -42,7 +42,8 @@ const fresh = (c0 = 'USA', c1 = 'USSR') => {
   run(g, 25, () => { if (jet.ammo < 4) ammoDropped = true; return jet.ammo === 0 || tanks[0].dead; });
   const dealt = tankHp0 - tanks.reduce((a, t) => a + (t.dead ? 0 : t.hp), 0);
   check('jet fires its ammo in strafing passes', ammoDropped && (jet.ammo === 0 || tanks[0].dead) && dealt > 300, `damage ${Math.round(dealt)}, ammo left ${jet.ammo}`);
-  check('jet out of ammo heads home', jet.order.type === 'rtb' || jet.landed);
+  run(g, 0.5);
+  check('jet heads home when out of ammo or its target is dead', jet.order.type === 'rtb' || jet.landed, jet.order.type);
   run(g, 30, () => jet.landed);
   const pp = g.padPos(af, jet.pad.i);
   check('jet lands on its own pad', jet.landed && Math.hypot(jet.x - pp.x, jet.y - pp.y) < 0.1);
