@@ -53,7 +53,7 @@ export class Renderer {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.s = state;
-    this.zoom = 2;
+    this.zoom = 1.5;
     this.camX = 0; this.camY = 0;
     this.low = document.createElement('canvas');
     this.lctx = this.low.getContext('2d', { willReadFrequently: true });
@@ -1120,24 +1120,55 @@ export class Renderer {
     }
   }
 
+  // RA2-style shroud: only never-explored ground is covered, explored ground stays fully open.
+  // The edge is a noisy marching-squares contour with a soft dark fringe, not tile diamonds.
   drawFog(ctx, x0, x1, y0, y1, onScreen) {
-    const s = this.s;
-    // RA2-style shroud: only never-explored tiles are covered; explored ground stays fully open
-    // (enemy units are still only shown where you currently have vision).
-    const black = new Path2D();
-    let nb = 0;
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-      const i = y * s.w + x;
-      if (s.explored[i] || !onScreen(x + 0.5, y + 0.5)) continue;
-      const [px, py] = isoFlat(x, y);
-      black.moveTo(px, py - 1.5); black.lineTo(px + HW + 2, py + HH); black.lineTo(px, py + 2 * HH + 1.5); black.lineTo(px - HW - 2, py + HH); black.closePath();
-      if (HG) {
-        const a = iso(x, y), b = iso(x + 1, y), c = iso(x + 1, y + 1), d = iso(x, y + 1);
-        black.moveTo(a[0], a[1] - 1.5); black.lineTo(b[0] + 2, b[1]); black.lineTo(c[0], c[1] + 1.5); black.lineTo(d[0] - 2, d[1]); black.closePath();
+    const s = this.s, w = s.w, h = s.h, R = 3;
+    const shroud = (tx, ty) => (tx < 0 || ty < 0 || tx >= w || ty >= h ? 1 : s.explored[ty * w + tx] ? 0 : 1);
+    const vn = (x, y) => {
+      const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi;
+      const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+      const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
+      return (a + (b - a) * sx) * (1 - sy) + (c + (d - c) * sx) * sy;
+    };
+    // shroud value at a world point: bilinear between tile centres, roughened with noise
+    const field = (u, v) => {
+      const fu = u - 0.5, fv = v - 0.5, ti = Math.floor(fu), tj = Math.floor(fv), bx = fu - ti, by = fv - tj;
+      const f = (shroud(ti, tj) * (1 - bx) + shroud(ti + 1, tj) * bx) * (1 - by) + (shroud(ti, tj + 1) * (1 - bx) + shroud(ti + 1, tj + 1) * bx) * by;
+      return f + (vn(u * 2.1, v * 2.1) * 0.7 + vn(u * 4.7 + 9, v * 4.7 + 4) * 0.3 - 0.5) * 0.35;
+    };
+    const solid = new Path2D(), fringe = new Path2D();
+    const addPoly = (path, pts) => { pts.forEach((p, k) => (k ? path.lineTo(p[0], p[1]) : path.moveTo(p[0], p[1]))); path.closePath(); };
+    const march = (path, P, F, th) => {
+      const poly = [];
+      for (let q = 0; q < 4; q++) {
+        const va = F[q] - th, vb = F[(q + 1) & 3] - th;
+        if (va > 0) poly.push(P[q]);
+        if ((va > 0) !== (vb > 0)) { const t = va / (va - vb); poly.push([P[q][0] + (P[(q + 1) & 3][0] - P[q][0]) * t, P[q][1] + (P[(q + 1) & 3][1] - P[q][1]) * t]); }
       }
-      nb++;
+      if (poly.length >= 3) addPoly(path, poly);
+    };
+    for (let y = y0 - 1; y <= y1 + 1; y++) for (let x = x0 - 1; x <= x1 + 1; x++) {
+      if (!onScreen(x + 0.5, y + 0.5)) continue;
+      // tiles whose 3x3 neighbourhood is uniform are either fully open (skip) or fully covered (one quad)
+      let sum = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) sum += shroud(x + dx, y + dy);
+      if (sum === 0) continue;
+      if (sum === 9) {
+        const a = iso(x, y), b = iso(x + 1, y), c = iso(x + 1, y + 1), d = iso(x, y + 1);
+        addPoly(solid, [[a[0], a[1] - 1], [b[0] + 1.5, b[1]], [c[0], c[1] + 1], [d[0] - 1.5, d[1]]]);
+        if (HG) { const [px, py] = isoFlat(x, y); addPoly(solid, [[px, py - 1], [px + HW + 1.5, py + HH], [px, py + 2 * HH + 1], [px - HW - 1.5, py + HH]]); }
+        continue;
+      }
+      for (let j = 0; j < R; j++) for (let i = 0; i < R; i++) {
+        const us = [x + i / R, x + (i + 1) / R, x + (i + 1) / R, x + i / R], vs = [y + j / R, y + j / R, y + (j + 1) / R, y + (j + 1) / R];
+        const P = us.map((u, k) => iso(u, vs[k])), F = us.map((u, k) => field(u, vs[k]));
+        march(solid, P, F, 0.5);
+        march(fringe, P, F, 0.22);
+      }
     }
-    if (nb) { ctx.fillStyle = '#000'; ctx.fill(black); }
+    ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fill(fringe);
+    ctx.fillStyle = '#000'; ctx.fill(solid);
   }
 
   placementValid(type, tx, ty) {
