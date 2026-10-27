@@ -5,6 +5,7 @@ import { HW, HH, iso, shade, buildingSprite, drawBuildingDynamic, drawUnit, draw
 import { Palette } from './palette.js';
 
 export const ZOOMS = [1, 1.5, 2, 2.5, 3];
+const BUILD_UP_MS = 1200;
 
 // Units are drawn larger than their footprint so they read clearly against the terrain.
 export const UNIT_SCALE = { infantry: 1.45, vehicle: 1.25 };
@@ -503,12 +504,22 @@ export class Renderer {
   }
 
   // Draw a pre-scaled sprite whose anchor is tile (tx, ty), on whole art pixels.
-  blit(ctx, spr, tx, ty) {
+  // rise (0..1) reveals the sprite from the ground up for the build-up animation
+  blit(ctx, spr, tx, ty, rise = null) {
     const [X, Y] = iso(tx, ty);
     const [offX, offY] = this.off;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(spr, Math.round(X * this.S - spr.ox) - offX, Math.round(Y * this.S - spr.oy) - offY);
+    const dx = Math.round(X * this.S - spr.ox) - offX, dy = Math.round(Y * this.S - spr.oy) - offY;
+    if (rise != null) {
+      const e = 1 - (1 - rise) ** 2, cut = Math.round(spr.height * (1 - e));
+      ctx.beginPath(); ctx.rect(dx, dy + cut, spr.width, spr.height - cut); ctx.clip();
+      // building slides up out of the ground while the scaffold reveal sweeps upward
+      ctx.drawImage(spr, dx, dy + Math.round((1 - e) * 10 * this.S));
+      ctx.restore();
+      return;
+    }
+    ctx.drawImage(spr, dx, dy);
     ctx.restore();
   }
 
@@ -521,9 +532,12 @@ export class Renderer {
     const color = owner ? owner.color : civ ? null : '#888888';
     const spr = buildingSprite(b.type, faction, color, this.S);
     if (ghost) ctx.globalAlpha = 0.85;
-    this.blit(ctx, spr, b.tx, b.ty);
+    const t0 = !ghost && s.rising.get(b.id);
+    const k = t0 ? Math.min(1, (performance.now() - t0) / BUILD_UP_MS) : 1;
+    if (k >= 1 && t0) s.rising.delete(b.id);
+    this.blit(ctx, spr, b.tx, b.ty, k < 1 ? k : null);
     const powered = !owner || (owner.power >= owner.drain && !owner.blackout);
-    if (!civ) drawBuildingDynamic(ctx, b, color, this.time, powered, faction);
+    if (!civ && k >= 1) drawBuildingDynamic(ctx, b, color, this.time, powered, faction);
     ctx.globalAlpha = 1;
     if (ghost) return;
     if (civ && (b.occ > 0 || ui.selection.has(b.id) || ui.hover === b.id)) this.drawPips(ctx, b, owner);

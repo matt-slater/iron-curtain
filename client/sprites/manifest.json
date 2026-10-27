@@ -14,6 +14,40 @@
   },
   "scale": 2
  },
+ "airfield_NATO": {
+  "anchor": [
+   304.0,
+   176.0
+  ],
+  "fh": 318,
+  "frame": 608,
+  "fw": 608,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "airfield_PACT": {
+  "anchor": [
+   344.0,
+   200.0
+  ],
+  "fh": 352,
+  "frame": 688,
+  "fw": 688,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
  "apc_PACT": {
   "anchor": [
    96.0,
@@ -43,6 +77,48 @@
   "rows": {
    "body": {
     "dirs": 32,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "atgun_NATO": {
+  "anchor": [
+   152.0,
+   96.0
+  ],
+  "fh": 168,
+  "frame": 304,
+  "fw": 304,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "atgun_PACT": {
+  "anchor": [
+   144.0,
+   92.0
+  ],
+  "fh": 162,
+  "frame": 288,
+  "fw": 288,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
     "row": 0
    },
    "turret": {
@@ -122,6 +198,40 @@
   },
   "scale": 2
  },
+ "barracks_NATO": {
+  "anchor": [
+   318.0,
+   192.0
+  ],
+  "fh": 320,
+  "frame": 636,
+  "fw": 636,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "barracks_PACT": {
+  "anchor": [
+   254.0,
+   152.0
+  ],
+  "fh": 264,
+  "frame": 508,
+  "fw": 508,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
  "cobra_NATO": {
   "anchor": [
    120.0,
@@ -168,6 +278,89 @@
    "body.walk3": {
     "dirs": 8,
     "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "conyard_NATO": {
+  "anchor": [
+   414.0,
+   244.0
+  ],
+  "fh": 412,
+  "frame": 828,
+  "fw": 828,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "conyard_PACT": {
+  "anchor": [
+   472.0,
+   280.0
+  ],
+  "fh": 464,
+  "frame": 944,
+  "fw": 944,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "derrick_ALL": {
+  "anchor": [
+   298.0,
+   180.0
+  ],
+  "fh": 304,
+  "frame": 596,
+  "fw": 596,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   },
+   "pump.p0": {
+    "dirs": 1,
+    "row": 1
+   },
+   "pump.p1": {
+    "dirs": 1,
+    "row": 2
+   },
+   "pump.p2": {
+    "dirs": 1,
+    "row": 3
+   },
+   "pump.p3": {
+    "dirs": 1,
+    "row": 4
+   },
+   "pump.p4": {
+    "dirs": 1,
+    "row": 5
+   },
+   "pump.p5": {
+    "dirs": 1,
+    "row": 6
+   },
+   "pump.p6": {
+    "dirs": 1,
+    "row": 7
+   },
+   "pump.p7": {
+    "dirs": 1,
+    "row": 8
    }
   },
   "scale": 2
@@ -238,6 +431,40 @@
    "body.walk3": {
     "dirs": 8,
     "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "factory_NATO": {
+  "anchor": [
+   356.0,
+   208.0
+  ],
+  "fh": 362,
+  "frame": 712,
+  "fw": 712,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "factory_PACT": {
+  "anchor": [
+   432.0,
+   256.0
+  ],
+  "fh": 430,
+  "frame": 864,
+  "fw": 864,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
    }
   },
   "scale": 2
@@ -333,6 +560,94 @@
   "rows": {
    "body": {
     "dirs": 32,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "house_arctic": {
+  "anchor": [
+   280.0,
+   168.0
+  ],
+  "fh": 288,
+  "flag": [
+   1.5599999999999998,
+   1.5599999999999998
+  ],
+  "frame": 560,
+  "fw": 560,
+  "pivot": 0,
+  "roof": 31,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "house_desert": {
+  "anchor": [
+   280.0,
+   168.0
+  ],
+  "fh": 288,
+  "flag": [
+   1.5599999999999998,
+   1.5599999999999998
+  ],
+  "frame": 560,
+  "fw": 560,
+  "pivot": 0,
+  "roof": 28,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "house_jungle": {
+  "anchor": [
+   280.0,
+   168.0
+  ],
+  "fh": 288,
+  "flag": [
+   1.5599999999999998,
+   1.5599999999999998
+  ],
+  "frame": 560,
+  "fw": 560,
+  "pivot": 0,
+  "roof": 36,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "house_temperate": {
+  "anchor": [
+   280.0,
+   168.0
+  ],
+  "fh": 288,
+  "flag": [
+   1.5599999999999998,
+   1.5599999999999998
+  ],
+  "frame": 560,
+  "fw": 560,
+  "pivot": 0,
+  "roof": 31,
+  "rows": {
+   "body": {
+    "dirs": 1,
     "row": 0
    }
   },
@@ -704,6 +1019,288 @@
   },
   "scale": 2
  },
+ "office_arctic": {
+  "anchor": [
+   458.0,
+   272.0
+  ],
+  "fh": 452,
+  "flag": [
+   2.56,
+   2.56
+  ],
+  "frame": 916,
+  "fw": 916,
+  "pivot": 0,
+  "roof": 49.0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "office_desert": {
+  "anchor": [
+   458.0,
+   272.0
+  ],
+  "fh": 452,
+  "flag": [
+   2.56,
+   2.56
+  ],
+  "frame": 916,
+  "fw": 916,
+  "pivot": 0,
+  "roof": 49.0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "office_jungle": {
+  "anchor": [
+   458.0,
+   272.0
+  ],
+  "fh": 452,
+  "flag": [
+   2.56,
+   2.56
+  ],
+  "frame": 916,
+  "fw": 916,
+  "pivot": 0,
+  "roof": 44,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "office_temperate": {
+  "anchor": [
+   458.0,
+   272.0
+  ],
+  "fh": 452,
+  "flag": [
+   2.56,
+   2.56
+  ],
+  "frame": 916,
+  "fw": 916,
+  "pivot": 0,
+  "roof": 49.0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "pillbox_NATO": {
+  "anchor": [
+   144.0,
+   92.0
+  ],
+  "fh": 162,
+  "frame": 288,
+  "fw": 288,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "pillbox_PACT": {
+  "anchor": [
+   144.0,
+   92.0
+  ],
+  "fh": 162,
+  "frame": 288,
+  "fw": 288,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "power_NATO": {
+  "anchor": [
+   318.0,
+   192.0
+  ],
+  "fh": 320,
+  "frame": 636,
+  "fw": 636,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "power_PACT": {
+  "anchor": [
+   376.0,
+   228.0
+  ],
+  "fh": 372,
+  "frame": 752,
+  "fw": 752,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "radar_NATO": {
+  "anchor": [
+   312.0,
+   188.0
+  ],
+  "fh": 316,
+  "frame": 624,
+  "fw": 624,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   },
+   "dish": {
+    "dirs": 16,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "radar_PACT": {
+  "anchor": [
+   318.0,
+   192.0
+  ],
+  "fh": 320,
+  "frame": 636,
+  "fw": 636,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   },
+   "dish": {
+    "dirs": 16,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "refinery_NATO": {
+  "anchor": [
+   330.0,
+   192.0
+  ],
+  "fh": 340,
+  "frame": 660,
+  "fw": 660,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "refinery_PACT": {
+  "anchor": [
+   408.0,
+   240.0
+  ],
+  "fh": 408,
+  "frame": 816,
+  "fw": 816,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "samsite_NATO": {
+  "anchor": [
+   254.0,
+   152.0
+  ],
+  "fh": 264,
+  "frame": 508,
+  "fw": 508,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "samsite_PACT": {
+  "anchor": [
+   266.0,
+   160.0
+  ],
+  "fh": 276,
+  "frame": 532,
+  "fw": 532,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
  "sapper_PACT": {
   "anchor": [
    48.0,
@@ -769,6 +1366,40 @@
    "turret": {
     "dirs": 32,
     "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "silo_NATO": {
+  "anchor": [
+   216.0,
+   128.0
+  ],
+  "fh": 232,
+  "frame": 432,
+  "fw": 432,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "silo_PACT": {
+  "anchor": [
+   222.0,
+   132.0
+  ],
+  "fh": 236,
+  "frame": 444,
+  "fw": 444,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
    }
   },
   "scale": 2
@@ -893,6 +1524,216 @@
    "turret": {
     "dirs": 32,
     "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "tech_NATO": {
+  "anchor": [
+   324.0,
+   196.0
+  ],
+  "fh": 326,
+  "frame": 648,
+  "fw": 648,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "tech_PACT": {
+  "anchor": [
+   432.0,
+   264.0
+  ],
+  "fh": 422,
+  "frame": 864,
+  "fw": 864,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "tenementB_arctic": {
+  "anchor": [
+   350.0,
+   208.0
+  ],
+  "fh": 352,
+  "flag": [
+   2.56,
+   1.5599999999999998
+  ],
+  "frame": 700,
+  "fw": 700,
+  "pivot": 0,
+  "roof": 36,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "tenementB_desert": {
+  "anchor": [
+   350.0,
+   208.0
+  ],
+  "fh": 352,
+  "flag": [
+   2.56,
+   1.5599999999999998
+  ],
+  "frame": 700,
+  "fw": 700,
+  "pivot": 0,
+  "roof": 36,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "tenementB_jungle": {
+  "anchor": [
+   350.0,
+   208.0
+  ],
+  "fh": 352,
+  "flag": [
+   2.56,
+   1.5599999999999998
+  ],
+  "frame": 700,
+  "fw": 700,
+  "pivot": 0,
+  "roof": 44,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "tenementB_temperate": {
+  "anchor": [
+   350.0,
+   208.0
+  ],
+  "fh": 352,
+  "flag": [
+   2.56,
+   1.5599999999999998
+  ],
+  "frame": 700,
+  "fw": 700,
+  "pivot": 0,
+  "roof": 36,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "tenement_arctic": {
+  "anchor": [
+   350.0,
+   208.0
+  ],
+  "fh": 352,
+  "flag": [
+   1.5599999999999998,
+   2.56
+  ],
+  "frame": 700,
+  "fw": 700,
+  "pivot": 0,
+  "roof": 36,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "tenement_desert": {
+  "anchor": [
+   350.0,
+   208.0
+  ],
+  "fh": 352,
+  "flag": [
+   1.5599999999999998,
+   2.56
+  ],
+  "frame": 700,
+  "fw": 700,
+  "pivot": 0,
+  "roof": 36,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "tenement_jungle": {
+  "anchor": [
+   350.0,
+   208.0
+  ],
+  "fh": 352,
+  "flag": [
+   1.5599999999999998,
+   2.56
+  ],
+  "frame": 700,
+  "fw": 700,
+  "pivot": 0,
+  "roof": 44,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "tenement_temperate": {
+  "anchor": [
+   350.0,
+   208.0
+  ],
+  "fh": 352,
+  "flag": [
+   1.5599999999999998,
+   2.56
+  ],
+  "frame": 700,
+  "fw": 700,
+  "pivot": 0,
+  "roof": 36,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
    }
   },
   "scale": 2

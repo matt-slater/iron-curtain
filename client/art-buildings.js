@@ -2,6 +2,10 @@
 // Warsaw Pact: brutalist stained concrete, rust, red stars, smokestacks, lattice radar.
 import { BUILDINGS } from './shared/data.js';
 import { iso, shade, hash, box, flat, gable, arch, sawtooth, cylinder, cone, dome, coolingTower, star, windows, windowsX, sandbags, hazard, pad, line, poly } from './art-core.js';
+import { hasSprite, drawSprite, spriteMeta, spriteRows } from './sprite-art.js';
+
+// Rendered building sheets are keyed <type>_<faction>, or <type>_<biome> for civilian buildings.
+export function buildingKey(type, faction) { return type === 'derrick' ? 'derrick_ALL' : `${type}_${faction}`; }
 
 const N = { wall: '#7b8176', wall2: '#686e64', roof: '#454b4b', pad: '#5c5e57', glass: '#3e5462', olive: '#4e5634', crane: '#c09a2a' };
 const P = { wall: '#857a66', wall2: '#6d6352', roof: '#5e3e2c', pad: '#55514a', brick: '#6a3b2c', red: '#9e2a1e', rust: '#7a4a2e', green: '#4a5636' };
@@ -366,6 +370,15 @@ function samsite(ctx, pactF, color, seed) {
 }
 
 export function drawBuilding(ctx, type, faction, color, seed = 7) {
+  const key = buildingKey(type, faction);
+  if (hasSprite(key)) {
+    const d = BUILDINGS[type];
+    drawSprite(ctx, key, 'body', d.w / 2, d.h / 2, 0, BUILDINGS[type].civilian ? null : color);
+    const m = spriteMeta(key);
+    // garrisoned civilian buildings fly the occupier's flag
+    if (BUILDINGS[type].civilian && color && m.flag) roofFlag(ctx, m.flag[0], m.flag[1], m.roof, color);
+    return;
+  }
   if (type === 'derrick') return derrick(ctx, color, seed);
   if (type === 'airfield') return airfield(ctx, faction === 'PACT', color, seed);
   if (type === 'samsite') return samsite(ctx, faction === 'PACT', color, seed);
@@ -377,6 +390,15 @@ export function drawBuilding(ctx, type, faction, color, seed = 7) {
 // Per-frame animated parts (world coords, footprint origin at tx, ty).
 export function drawBuildingDynamic(ctx, b, color, time, powered, faction) {
   const { tx, ty } = b;
+  const key = buildingKey(b.type, faction);
+  if (hasSprite(key)) {
+    const rows = spriteRows(key), cx = tx + b.w / 2, cy = ty + b.h / 2;
+    if (rows.turret) drawSprite(ctx, key, 'turret', cx, cy, b.turret, color);
+    // the antenna sheet is a 16-frame rotation; it stops turning when the power is down
+    if (rows.dish) drawSprite(ctx, key, 'dish', cx, cy, powered ? time * 1.4 : 0.7, color);
+    if (rows['pump.p0']) drawSprite(ctx, key, `pump.p${Math.floor(time * 5) & 7}`, cx, cy, 0, color);
+    return;
+  }
   const pactF = faction === 'PACT';
   if (b.type === 'radar') {
     const a = powered ? time * 1.4 : 0.7;

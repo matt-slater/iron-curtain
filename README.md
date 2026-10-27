@@ -103,7 +103,7 @@ The server is a single Node process: a static file server plus WebSockets. It re
 
 ## Rendered 3D sprites
 
-All units use sprites rendered from 3D models in Blender, in the style of RA2's voxel units: 21 vehicle and aircraft types plus 15 infantry looks, for both factions. Each sprite sheet downloads the first time its unit appears. Until it arrives, or if a sheet is missing, the game shows the hand-coded pixel art.
+All units and buildings use sprites rendered from 3D models in Blender, in the style of RA2's pre-rendered art: 21 vehicle and aircraft types, 15 infantry looks, every faction building (NATO and Pact versions), the oil derrick, and civilian buildings for each of the 4 biomes. Turrets, radar antennas and the derrick pump are separate animated layers, and new buildings rise out of the ground when placed or deployed from an MCV. Each sprite sheet downloads the first time its unit appears. Until it arrives, or if a sheet is missing, the game shows the hand-coded pixel art.
 
 - **Models** are built from code in `tools/sprites/models.py`: boxes, lofts, cylinders and domes, with grime and camo materials. Parts tagged `team` are tinted with the player's colour in game.
 - **Rendering:** with Blender installed (`brew install --cask blender`), run:
@@ -111,7 +111,7 @@ All units use sprites rendered from 3D models in Blender, in the style of RA2's 
   /Applications/Blender.app/Contents/MacOS/Blender -b -P tools/sprites/render.py -- tank_PACT   # one unit (omit for all)
   /Applications/Blender.app/Contents/MacOS/Blender -b -P tools/sprites/preview.py               # contact sheet -> tools/sprites/preview.png
   ```
-  Add `--fast` for quick, noisy test renders.
+  Add `--fast` for quick, noisy test renders, or `--buildings` to render only buildings (models in `tools/sprites/buildings.py`).
 - **Output:** `client/sprites/<look>_<faction>.png` plus a `.mask.png` (team-colour areas) and `manifest.json`. Vehicles have 32 directions with a separate turret layer. Infantry have 8 directions with idle, 4 walk frames and a fire frame. The camera matches the game's 2:1 isometric view, and 1 Blender unit is 1 map tile.
 - **Adding a unit:** write a builder in `models.py`, then add it to `UNITS` under the key `<look>_<faction>` used in `client/art-units.js`.
 

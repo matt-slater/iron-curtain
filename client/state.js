@@ -32,6 +32,7 @@ export class ClientState {
     this.projs = new Map();
     this.explored = new Uint8Array(this.w * this.h);
     this.visible = new Uint8Array(this.w * this.h);
+    this.rising = new Map();
     this.ghosts = new Map();
     this.bmap = new Int32Array(this.w * this.h);
     this.effects = [];
@@ -235,7 +236,14 @@ export class ClientState {
         if (pid === this.you) speak(D.UNITS[utype].cat === 'infantry' ? 'Unit ready' : 'Unit ready');
         break;
       }
-      case 'place': play('place'); break;
+      case 'place': {
+        play('place');
+        // newly built/deployed buildings play a short build-up animation
+        this.rising.set(ev[2], performance.now());
+        const b = this.ents.get(ev[2]);
+        if (b && this.canSee(b)) for (let i = 0; i < 6; i++) this.addEffect({ kind: 'smoke', x: b.tx + Math.random() * b.w, y: b.ty + Math.random() * b.h, z: 4, dur: 900 + Math.random() * 500 });
+        break;
+      }
       case 'garrison': {
         const b = this.ents.get(ev[1]);
         if (b && (ev[2] === this.you || this.canSee(b))) this.emit('sound', 'click', b.x, b.y);

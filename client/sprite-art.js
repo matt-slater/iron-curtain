@@ -49,20 +49,21 @@ function frameCanvas(s, row, k, color) {
   const id = `${row}|${k}|${color}`;
   let c = s.cache.get(id);
   if (c) return c;
-  const F = s.meta.frame, r = s.meta.rows[row].row;
+  const FW = s.meta.fw || s.meta.frame, FH = s.meta.fh || s.meta.frame, r = s.meta.rows[row].row;
   c = document.createElement('canvas');
-  c.width = c.height = F;
+  c.width = FW; c.height = FH;
   const g = c.getContext('2d', { willReadFrequently: true });
-  g.drawImage(s.img, k * F, r * F, F, F, 0, 0, F, F);
+  g.drawImage(s.img, k * FW, r * FH, FW, FH, 0, 0, FW, FH);
   if (!scratch) { scratch = document.createElement('canvas'); }
-  scratch.width = scratch.height = F;
+  scratch.width = FW; scratch.height = FH;
   const sg = scratch.getContext('2d', { willReadFrequently: true });
-  sg.clearRect(0, 0, F, F);
-  sg.drawImage(s.mask, k * F, r * F, F, F, 0, 0, F, F);
-  const m = sg.getImageData(0, 0, F, F).data;
-  const img = g.getImageData(0, 0, F, F);
+  sg.clearRect(0, 0, FW, FH);
+  sg.drawImage(s.mask, k * FW, r * FH, FW, FH, 0, 0, FW, FH);
+  const m = sg.getImageData(0, 0, FW, FH).data;
+  const img = g.getImageData(0, 0, FW, FH);
   const d = img.data;
-  const [tr, tg, tb] = rgb(color);
+  // untinted sprites (neutral civilian buildings) keep their neutral grey trim
+  const [tr, tg, tb] = color ? rgb(color) : [150, 148, 140];
   for (let i = 0; i < d.length; i += 4) {
     if (d[i + 3] === 0) continue;
     // push colour away from grey so models survive the game's gritty palette
@@ -91,17 +92,19 @@ export function drawSprite(ctx, key, row, x, y, dir, color) {
   const n = info.dirs;
   const k = ((Math.round(dir / (Math.PI * 2) * n) % n) + n) % n;
   const c = frameCanvas(s, row, k, color);
-  const sc = 1 / s.meta.scale, F = s.meta.frame;
+  const sc = 1 / s.meta.scale;
   const [sx, sy] = iso(x, y);
   const smooth = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(c, sx - s.meta.anchor[0] * sc, sy - s.meta.anchor[1] * sc, F * sc, F * sc);
+  ctx.drawImage(c, sx - s.meta.anchor[0] * sc, sy - s.meta.anchor[1] * sc, c.width * sc, c.height * sc);
   ctx.imageSmoothingEnabled = smooth;
   return true;
 }
 
 export function spriteRows(key) { return sheets.get(key)?.meta.rows; }
+
+export function spriteMeta(key) { return sheets.get(key)?.meta; }
 
 // Forward offset (tiles) of the turret pivot from the unit centre.
 export function spritePivot(key) { return sheets.get(key)?.meta.pivot || 0; }

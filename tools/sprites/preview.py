@@ -25,28 +25,34 @@ def over(dst, src):
 man = json.load(open(os.path.join(SPR, 'manifest.json')))
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 keys = argv or sorted(man)
-cell = max(man[k]["frame"] for k in keys)
-out = np.zeros((cell * len(keys), cell * 8, 4), dtype=np.float32)
+cell = max(max(man[k].get("fw", man[k]["frame"]), man[k].get("fh", man[k]["frame"])) for k in keys)
+COLS = 8 if any(man[k]['rows'].get('body', {}).get('dirs', 1) > 1 or 'body.idle' in man[k]['rows'] for k in keys) else 1
+PER = 8 if COLS == 1 else 1
+rows_n = (len(keys) + PER - 1) // PER
+out = np.zeros((cell * rows_n, cell * max(COLS, PER), 4), dtype=np.float32)
 out[..., :3] = (0.24, 0.29, 0.16)
 out[..., 3] = 1
 team = np.array([0.75, 0.16, 0.12])
-for r, key in enumerate(keys):
+for r0, key in enumerate(keys):
+    r, cshift = (r0 // PER, r0 % PER) if PER > 1 else (r0, 0)
     m = man[key]
     sheet, mask = load(os.path.join(SPR, key + '.png')), load(os.path.join(SPR, key + '.mask.png'))
-    F = m['frame']
+    FW, FH = m.get('fw', m['frame']), m.get('fh', m['frame'])
     rows = m['rows']
     base = 'body' if 'body' in rows else 'body.idle'
-    for c in range(8):
-        tile = out[r * cell:(r + 1) * cell, c * cell:(c + 1) * cell]
-        for layer in ([base] + (['turret'] if 'turret' in rows else [])):
+    extra = [r for r in ('turret', 'dish', 'pump.p0') if r in rows]
+    for c in range(COLS):
+        cc = c + cshift
+        tile = out[r * cell:(r + 1) * cell, cc * cell:(cc + 1) * cell]
+        for layer in [base] + extra:
             info = rows[layer]
             k = c * info['dirs'] // 8
-            fr = sheet[info['row'] * F:(info['row'] + 1) * F, k * F:(k + 1) * F].copy()
-            mk = mask[info['row'] * F:(info['row'] + 1) * F, k * F:(k + 1) * F]
+            fr = sheet[info['row'] * FH:(info['row'] + 1) * FH, k * FW:(k + 1) * FW].copy()
+            mk = mask[info['row'] * FH:(info['row'] + 1) * FH, k * FW:(k + 1) * FW]
             lum = fr[..., :3].mean(axis=2, keepdims=True)
             fr[..., :3] = fr[..., :3] * (1 - mk[..., 3:4]) + (lum * 1.6 * team) * mk[..., 3:4]
-            o = (cell - F) // 2
-            over(tile[o:o + F, o:o + F], fr)
+            oy, ox = (cell - FH) // 2, (cell - FW) // 2
+            over(tile[oy:oy + FH, ox:ox + FW], fr)
 img = bpy.data.images.new('preview', out.shape[1], out.shape[0], alpha=True)
 img.pixels.foreach_set(np.ascontiguousarray(out[::-1]).ravel())
 img.filepath_raw = os.path.join(ROOT, 'preview.png')

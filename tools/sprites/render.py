@@ -13,6 +13,9 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import models  # noqa: E402
+import buildings  # noqa: E402
+
+SPECS = {**models.UNITS, **buildings.SPECS}
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.normpath(os.path.join(ROOT, '..', '..', 'client', 'sprites'))
@@ -21,7 +24,7 @@ PX_PER_BU = 32 / math.cos(math.radians(45))  # 45.25 px per Blender unit in the 
 SCALE = 2  # rendered at 2x art resolution; the game downsamples
 
 
-def setup_scene(frame_px, fast):
+def setup_scene(fw, fh, shift, fast):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene
     sc.render.engine = 'CYCLES'
@@ -38,7 +41,7 @@ def setup_scene(frame_px, fast):
         pass
     sc.render.film_transparent = True
     sc.render.filter_size = 1.2
-    sc.render.resolution_x = sc.render.resolution_y = frame_px * SCALE
+    sc.render.resolution_x, sc.render.resolution_y = fw * SCALE, fh * SCALE
     sc.render.resolution_percentage = 100
     sc.render.image_settings.file_format = 'PNG'
     sc.render.image_settings.color_mode = 'RGBA'
@@ -49,7 +52,8 @@ def setup_scene(frame_px, fast):
     # 2:1 dimetric camera: 30 degree elevation, looking from the game's +x+y corner
     cam = bpy.data.cameras.new('cam')
     cam.type = 'ORTHO'
-    cam.ortho_scale = frame_px / PX_PER_BU
+    cam.ortho_scale = max(fw, fh) / PX_PER_BU
+    cam.shift_y = shift / max(fw, fh)  # moves the anchor below the image centre (tall buildings)
     co = bpy.data.objects.new('cam', cam)
     el, d = math.radians(30), 30
     co.location = (math.cos(el) * d * math.sqrt(0.5), -math.cos(el) * d * math.sqrt(0.5), math.sin(el) * d)
@@ -72,7 +76,7 @@ def setup_scene(frame_px, fast):
     sc.world = world
 
     # invisible ground that only receives shadows
-    bpy.ops.mesh.primitive_plane_add(size=6, location=(0, 0, 0))
+    bpy.ops.mesh.primitive_plane_add(size=14, location=(0, 0, 0))
     ground = bpy.context.active_object
     ground.name = 'shadow_catcher'
     ground.is_shadow_catcher = True
@@ -124,12 +128,14 @@ def set_mask_mode(objs, on):
 
 
 def render_unit(key, spec, fast):
-    frame = spec['frame']
-    sc, ground = setup_scene(frame, fast)
+    fw = spec.get('fw', spec.get('frame'))
+    fh = spec.get('fh', fw)
+    shift = spec.get('shift', 0)
+    sc, ground = setup_scene(fw, fh, shift, fast)
     models._mats.clear()  # materials from the previous unit were wiped with the scene
     built = spec['build']()  # {'layers': {name: root}, 'poses': {layer: {pose: fn}}}
     layers = built['layers']
-    W = H = frame * SCALE
+    W, H = fw * SCALE, fh * SCALE
     os.makedirs(TMP, exist_ok=True)
     rows = []
 
@@ -138,7 +144,7 @@ def render_unit(key, spec, fast):
 
     for lname, root in layers.items():
         poses = built.get('poses', {}).get(lname) or {'': None}
-        dirs = spec['dirs']
+        dirs = spec['dirs'][lname] if isinstance(spec['dirs'], dict) else spec['dirs']
         for other, r in layers.items():
             for o in objs_of(r): o.hide_render = other != lname
         for pname, pose in poses.items():
@@ -170,19 +176,21 @@ def render_unit(key, spec, fast):
     os.makedirs(OUT, exist_ok=True)
     save_sheet(sheet, os.path.join(OUT, f'{key}.png'))
     save_sheet(msheet, os.path.join(OUT, f'{key}.mask.png'))
-    return {'frame': W, 'scale': SCALE, 'anchor': [W / 2, H / 2], 'pivot': built.get('pivot', 0),
+    return {'frame': W, 'fw': W, 'fh': H, 'scale': SCALE, 'anchor': [W / 2, H / 2 + shift * SCALE], 'pivot': built.get('pivot', 0),
+            **built.get('meta', {}),
             'rows': {name: {'row': i, 'dirs': len(c)} for i, (name, c, _) in enumerate(rows)}}
 
 
 def main():
     argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
     fast = '--fast' in argv
-    keys = [a for a in argv if not a.startswith('--')] or list(models.UNITS)
+    keys = [a for a in argv if not a.startswith('--')] or list(SPECS)
+    if '--buildings' in argv: keys = list(buildings.SPECS)
     man_path = os.path.join(OUT, 'manifest.json')
     manifest = json.load(open(man_path)) if os.path.exists(man_path) else {}
     for key in keys:
         t0 = time.time()
-        manifest[key] = render_unit(key, models.UNITS[key], fast)
+        manifest[key] = render_unit(key, SPECS[key], fast)
         print(f'[sprites] {key}: {time.time() - t0:.1f}s', flush=True)
         os.makedirs(OUT, exist_ok=True)
         with open(man_path, 'w') as f:

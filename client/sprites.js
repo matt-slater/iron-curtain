@@ -2,17 +2,19 @@
 import { BUILDINGS, UNITS } from './shared/data.js';
 import { HW, HH, iso, shade, poly } from './art-core.js';
 import { drawBuilding, drawBuildingDynamic } from './art-buildings.js';
+import { onSpritesLoaded } from './sprite-art.js';
 import { drawUnit } from './art-units.js';
 
 export { HW, HH, iso, shade, drawBuilding, drawBuildingDynamic, drawUnit };
 
 export function buildingSpriteSize(type) {
   const d = BUILDINGS[type];
-  return { w: (d.w + d.h) * HW + 8, h: (d.w + d.h) * HH + 100, ox: d.h * HW + 4, oy: 96 };
+  return { w: (d.w + d.h) * HW + 24, h: (d.w + d.h) * HH + 136, ox: d.h * HW + 12, oy: 120 };
 }
 
 // Building sprites are rendered directly at the current art scale so pixels stay crisp.
 const spriteCache = new Map();
+onSpritesLoaded(() => spriteCache.clear());
 export function buildingSprite(type, faction, color, scale = 1) {
   const key = `${type}|${faction}|${color}|${scale}`;
   let c = spriteCache.get(key);
