@@ -2,6 +2,7 @@
 import * as D from './shared/data.js';
 import { T, buildable } from './shared/map.js';
 import { HW, HH, iso, shade, buildingSprite, drawBuildingDynamic, drawUnit, drawTree, drawRock, drawRuin } from './sprites.js';
+import { drawTransport } from './art-units.js';
 import { Palette } from './palette.js';
 
 export const ZOOMS = [1, 1.5, 2, 2.5, 3];
@@ -319,7 +320,7 @@ export class Renderer {
       } else {
         if (!s.canSee(e) || !onScreen(e.x, e.y)) continue;
         // aircraft (including jets parked on airfield pads) are drawn in a separate pass above everything else
-        if (e.air) air.push(e);
+        if (e.air || e.alt > 1) air.push(e);
         else objs.push({ d: e.x + e.y, k: 'u', e });
       }
     }
@@ -345,11 +346,15 @@ export class Renderer {
     for (const e of air) {
       if (!(e.alt > 2)) continue;
       const [sx, sy] = iso(e.x, e.y);
-      const r = e.air === 'jet' ? 18 : 14;
+      const r = e.air === 'jet' ? 18 : e.air ? 14 : 5;
       ctx.fillStyle = `rgba(8,12,18,${0.24 * Math.max(0.35, 1 - e.alt / 90)})`;
       ctx.beginPath(); ctx.ellipse(sx, sy, r, r / 2, 0, 0, Math.PI * 2); ctx.fill();
     }
-    for (const e of air) this.drawUnitEnt(ctx, e, ui);
+    for (const e of air) {
+      if (!e.air) this.drawParachute(ctx, e, s.players[e.owner]?.color);
+      this.drawUnitEnt(ctx, e, ui);
+    }
+    this.drawPlanes(ctx);
 
     this.drawBridgeDamage(ctx, ui);
     this.drawOrderLines(ctx, ui, nowMs);
@@ -380,6 +385,12 @@ export class Renderer {
 
     // placement ghost
     if (ui.placing && ui.mouseWorld) this.drawPlacement(ctx, ui);
+    if (ui.mode === 'para' && ui.mouseWorld) {
+      const [sx, sy] = iso(ui.mouseWorld.x, ui.mouseWorld.y);
+      ctx.strokeStyle = 'rgba(120,230,120,0.9)'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.ellipse(sx, sy, 2.2 * HW * 1.41, 2.2 * HH * 1.41, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]); ctx.lineWidth = 1;
+    }
     if (ui.mode === 'nuke' && ui.mouseWorld) {
       const [sx, sy] = iso(ui.mouseWorld.x, ui.mouseWorld.y);
       ctx.strokeStyle = 'rgba(255,60,40,0.9)'; ctx.lineWidth = 2;
@@ -624,6 +635,44 @@ export class Renderer {
     for (let k = 0; k < cap; k++) {
       ctx.fillStyle = k < b.occ ? (owner ? owner.color : '#d8d8d0') : '#2a2a26';
       ctx.fillRect(x0 + k * 5, y0, 4, 3);
+    }
+  }
+
+  // Parachute canopy above a falling paratrooper.
+  drawParachute(ctx, e, color) {
+    const k = uscale(e.type);
+    const [gx, gy] = iso(e.x, e.y, e.alt + 22 * k);
+    const [hx, hy] = iso(e.x, e.y, e.alt + 10 * k);
+    const sway = Math.sin(this.time * 2 + e.id) * 2;
+    ctx.strokeStyle = 'rgba(40,40,34,0.9)'; ctx.lineWidth = 1 / this.S * 2;
+    for (const dx of [-9, -3, 3, 9]) { ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(gx + dx * k + sway, gy + 1); ctx.stroke(); }
+    ctx.fillStyle = '#c8c2a8';
+    ctx.beginPath(); ctx.ellipse(gx + sway, gy, 11 * k, 6 * k, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = color || '#8a8a7a';
+    ctx.beginPath(); ctx.ellipse(gx + sway, gy, 4 * k, 6 * k, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(30,30,24,0.7)'; ctx.beginPath(); ctx.ellipse(gx + sway, gy, 11 * k, 6 * k, 0, Math.PI, 0); ctx.stroke();
+    ctx.lineWidth = 1;
+  }
+
+  // Paradrop transport planes: rendered sprite when available, simple silhouette otherwise.
+  drawPlanes(ctx) {
+    const s = this.s;
+    for (const pl of s.planes.values()) {
+      const z = 70;
+      const [sx, sy] = iso(pl.x, pl.y);
+      ctx.fillStyle = 'rgba(8,12,18,0.18)';
+      ctx.beginPath(); ctx.ellipse(sx, sy, 34, 17, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.save();
+      ctx.translate(0, -z);
+      if (!drawTransport(ctx, pl.x, pl.y, pl.dir, this.time)) {
+        const c = Math.cos(pl.dir), sn = Math.sin(pl.dir);
+        const P = (f, q) => iso(pl.x + c * f - sn * q, pl.y + sn * f + c * q);
+        ctx.fillStyle = '#6a6e64';
+        for (const shape of [[[0.9, 0], [-0.8, 0.08], [-0.8, -0.08]], [[0.15, 0.9], [-0.15, 0.9], [-0.1, -0.9], [0.15, -0.9]], [[-0.65, 0.35], [-0.8, 0.35], [-0.8, -0.35], [-0.65, -0.35]]]) {
+          ctx.beginPath(); shape.forEach(([f, q], i) => { const [x, y] = P(f, q); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath(); ctx.fill();
+        }
+      }
+      ctx.restore();
     }
   }
 

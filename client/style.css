@@ -100,6 +100,9 @@ select option, select optgroup { background: #000; color: var(--ph); }
 .sb-buttons button.on { background: var(--ph); color: #000; }
 #btn-nuke.ready { color: var(--warn); border-color: var(--warn); animation: blink 0.8s steps(1) infinite; }
 #nuke-timer { font-size: 16px; color: var(--warn); text-align: center; }
+#btn-para { grid-column: 1 / -1; }
+#btn-para.ready { color: var(--ph); border-color: var(--ph); animation: blink 0.8s steps(1) infinite; }
+#para-timer { font-size: 16px; text-align: center; }
 .tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
 .tabs button { font-size: 17px; padding: 0; position: relative; }
 .tabs button::before, .tabs button::after { content: ''; }

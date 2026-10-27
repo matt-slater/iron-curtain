@@ -557,6 +557,13 @@ function drawInfantryBody(ctx, look, x, y, dir, color, faction, time, moving, fi
   }
 }
 
+// Paradrop transport plane (C-130 style); returns false when the rendered sprite isn't loaded yet.
+export function drawTransport(ctx, x, y, dir) {
+  if (!hasSprite('transport_ALL')) return false;
+  drawSprite(ctx, 'transport_ALL', 'body', x, y, dir, null);
+  return true;
+}
+
 export function drawUnit(ctx, type, x, y, dir, tdir, color, faction, time, flags, cargo, firing) {
   const d = UNITS[type];
   if (d.cat === 'infantry') drawInfantry(ctx, d.look, x, y, dir, color, faction, time, flags & 2, firing, !!(flags & 8), !!(flags & 16));

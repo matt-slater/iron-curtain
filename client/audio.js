@@ -68,6 +68,7 @@ const SOUNDS = {
   place: () => { tone(220, 110, 0.25, 0.3, 'triangle'); noise(0.3, 400, 1, 0.3); },
   cash: () => { tone(1400, 1400, 0.06, 0.08, 'triangle'); setTimeout(() => ctx && tone(1900, 1900, 0.08, 0.08, 'triangle'), 60); },
   error: () => tone(220, 180, 0.2, 0.15, 'square'),
+  jet: () => { noise(2.5, 900, 0.6, 0.35, 'bandpass', 300); tone(160, 90, 2.2, 0.15, 'sawtooth'); },
   nuke: () => { noise(4, 400, 0.7, 1, 'lowpass', 30); tone(40, 15, 3.5, 0.8); },
   siren: () => { const t = ctx.currentTime; const o = ctx.createOscillator(); const g = ctx.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(400, t); o.frequency.linearRampToValueAtTime(800, t + 1); o.frequency.linearRampToValueAtTime(400, t + 2); g.gain.setValueAtTime(0.08, t); g.gain.linearRampToValueAtTime(0.001, t + 2.1); o.connect(g); g.connect(master); o.start(t); o.stop(t + 2.2); },
 };

@@ -168,10 +168,15 @@ export const BUILDINGS = {
   tenementB: { names: ['Apartment Block', 'Apartment Block'], w: 3, h: 2, hp: 1600, cost: 1200, power: 0, sight: 6, cat: null, req: [], civilian: true, garrison: 6, height: 36 },
   office: { names: ['Office Block', 'Office Block'], w: 3, h: 3, hp: 2400, cost: 1600, power: 0, sight: 7, cat: null, req: [], civilian: true, garrison: 8, height: 48 },
   bridgehut: { names: ['Bridge Repair Hut', 'Bridge Repair Hut'], w: 1, h: 1, hp: 1, cost: 0, power: 0, sight: 0, cat: null, req: [], height: 14, invulnerable: true, desc: 'Send an engineer inside to rebuild the destroyed bridge.' },
+  techairport: { names: ['Airport', 'Airport'], w: 3, h: 3, hp: 1500, cost: 0, power: 0, sight: 5, cat: null, req: [], capturable: true, tech: true, height: 30, desc: 'Neutral airport. Capture it with an engineer to call in paratroopers on a timer.' },
   derrick: { names: ['Oil Derrick', 'Oil Derrick'], w: 2, h: 2, hp: 600, cost: 1000, power: 0, sight: 3, cat: null, req: [], income: 15, capturable: true, height: 26 },
 };
 
 export const SUPER_CHARGE = 300; // seconds
+// Paradrop from a captured tech airport (RA2 style): charge time and the squad dropped per faction.
+export const PARA_CHARGE = 180;
+export const PARA_SQUAD = { NATO: ['rifleman', 6], PACT: ['conscript', 9] };
+export const PARA_PLANE_SPEED = 7, PARA_ALT = 70, PARA_FALL = 18;
 export const GARRISON_RANGE = 1.5; // extra range for infantry firing from a building
 export const GARRISON_ROF = 0.85;  // garrisoned weapons fire a little faster
 export const NUKE = { dmg: 1500, radius: 5, clears: 1, vs: V(1, 1, 0.8, 0.6, 1) };

@@ -41,6 +41,7 @@ DEFCON ............... <span class="blink">2</span></pre>
         <li><b>Garrisons:</b> right-click a civilian building with basic infantry to occupy it. They fire from the windows with extra range and are safe until the building falls. Select it and press <b>D</b> to evacuate. Snipers and artillery clear garrisons; tanks knock the building down.</li>
         <li><b>Aircraft:</b> build an Air Base, then use the <b>AIR</b> tab. Jets have limited ammo, fly back to their pad to rearm (4 pads per base). Helicopters hover and never rearm. Only anti-air (Stinger/Strela teams, AA vehicles, SAM sites) hits aircraft hard.</li>
         <li><b>Bridges:</b> Ctrl + right-click a bridge to blow it up with tanks/artillery. Send an engineer into the small repair hut by the bridge to rebuild it.</li>
+        <li><b>Paradrops:</b> capture the neutral <b>Airport</b> on the map with an engineer. Every few minutes the PARADROP button lights up: click it, then click anywhere on the map to drop infantry there.</li>
         <li>Build from the sidebar. Right-click a sidebar item to cancel. Shift-click queues 5.</li>
         <li><b>A</b>+click: attack-move. <b>S</b>: stop. <b>Ctrl+1-9</b>: assign group, <b>1-9</b>: select group. <b>H</b>: home base.</li>
         <li>Select a Barracks/War Factory and right-click the ground to set a rally point.</li>
@@ -97,8 +98,10 @@ DEFCON ............... <span class="blink">2</span></pre>
       <button id="btn-repair" title="Repair building (R)">REPAIR</button>
       <button id="btn-nuke" title="Launch nuclear missile" disabled>NUKE</button>
       <button id="btn-menu" title="Menu (F10)">MENU</button>
+      <button id="btn-para" title="Paradrop (capture a neutral Airport with an engineer)" disabled hidden>PARADROP</button>
     </div>
     <div id="nuke-timer"></div>
+    <div id="para-timer"></div>
     <div class="tabs">
       <button data-tab="building" class="active">BLD</button>
       <button data-tab="defense">DEF</button>

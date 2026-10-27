@@ -989,6 +989,25 @@ def veh(build, frame=96, **kw):
     return dict(build=build, frame=frame, dirs=32, **kw)
 
 
+# ---------- paradrop transport (C-130 style) ----------
+def transport():
+    body = root('body')
+    skin = mat('#7a7e74', grime=0.15, scale=14)
+    dark = mat('#4a4e48', grime=0.2)
+    z = H(8)
+    loft('fuselage', [(1.0, 0), (0.9, -0.11), (-0.7, -0.11), (-1.0, -0.03), (-1.0, 0.03), (-0.7, 0.11), (0.9, 0.11)], z - H(4),
+         [(0.96, 0), (0.86, -0.1), (-0.7, -0.1), (-0.98, -0.02), (-0.98, 0.02), (-0.7, 0.1), (0.86, 0.1)], z + H(4), skin, body, bevel=0.02)
+    # high wing with four turboprops
+    loft('wing', [(0.22, -1.15), (0.22, 1.15), (-0.02, 1.15), (-0.02, -1.15)], z + H(3.4), [(0.2, -1.12), (0.2, 1.12), (0.0, 1.12), (0.0, -1.12)], z + H(4.6), skin, body, bevel=0.008)
+    for q in (-0.75, -0.4, 0.4, 0.75):
+        cyl('nacelle', 0.06, 0.34, (0.2, q, z + H(2.4)), 'x', dark, body, verts=12)
+        cyl('prop', 0.16, 0.012, (0.38, q, z + H(2.4)), 'x', mat('#2a2a26', rough=0.6), body, verts=16)
+    loft('fin', [(-0.66, -0.012), (-0.98, -0.012), (-0.98, 0.012), (-0.66, 0.012)], z + H(3), [(-0.86, -0.012), (-1.0, -0.012), (-1.0, 0.012), (-0.86, 0.012)], z + H(16), skin, body, bevel=0)
+    box('tailplane', -1.0, -0.84, -0.42, 0.42, z + H(3), z + H(4), skin, body)
+    box('cockpit', 0.82, 0.92, -0.08, 0.08, z + H(2.4), z + H(4.3), mat('#3e5462', rough=0.15, metal=0.3, grime=0), body, bevel=0)
+    return {'layers': {'body': body}}
+
+
 # key -> how to build it; keys are <look>_<faction> as used by client/art-units.js
 UNITS = {
     'tank_PACT': veh(t72),
@@ -1016,6 +1035,7 @@ UNITS = {
     'su25_PACT': veh(su25, 120, shadow=False),
     'cobra_NATO': veh(cobra, 120, shadow=False),
     'hind_PACT': veh(hind, 128, shadow=False),
+    'transport_ALL': veh(transport, 200, shadow=False),
 }
 for _k, _cfg in INF_STYLES.items():
     UNITS[_k] = inf_unit(_k, 64 if _cfg.get('count', 1) > 1 else 48)

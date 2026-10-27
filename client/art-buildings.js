@@ -5,7 +5,7 @@ import { iso, shade, hash, box, flat, gable, arch, sawtooth, cylinder, cone, dom
 import { hasSprite, drawSprite, spriteMeta, spriteRows } from './sprite-art.js';
 
 // Rendered building sheets are keyed <type>_<faction>, or <type>_<biome> for civilian buildings.
-export function buildingKey(type, faction) { return type === 'derrick' || type === 'bridgehut' ? `${type}_ALL` : `${type}_${faction}`; }
+export function buildingKey(type, faction) { return type === 'derrick' || type === 'bridgehut' || type === 'techairport' ? `${type}_ALL` : `${type}_${faction}`; }
 
 const N = { wall: '#7b8176', wall2: '#686e64', roof: '#454b4b', pad: '#5c5e57', glass: '#3e5462', olive: '#4e5634', crane: '#c09a2a' };
 const P = { wall: '#857a66', wall2: '#6d6352', roof: '#5e3e2c', pad: '#55514a', brick: '#6a3b2c', red: '#9e2a1e', rust: '#7a4a2e', green: '#4a5636' };
@@ -380,6 +380,16 @@ export function drawBuilding(ctx, type, faction, color, seed = 7) {
     return;
   }
   if (type === 'derrick') return derrick(ctx, color, seed);
+  if (type === 'techairport') {
+    pad(ctx, 3, 3, 2, '#5c5e58', seed);
+    box(ctx, 0.2, 1.4, 2.0, 2.8, 2, 14, '#9a9a8e', null, 0.5, seed);
+    windows(ctx, 0.3, 1.9, 2.8, 8, 6, '#5b7482', 0.5, seed);
+    flat(ctx, 0.2, 2.6, 2.0, 2.8, 14.5, color || '#888');
+    box(ctx, 2.2, 1.8, 2.7, 2.3, 2, 26, '#8a8a80', null, 0.4, seed + 1);
+    box(ctx, 2.1, 1.7, 2.8, 2.4, 26, 31, '#3e5462', null, 0.2, seed + 2);
+    arch(ctx, 0.3, 0.2, 2.7, 1.2, 4, 12, '#6a6e6a', 8);
+    return;
+  }
   if (type === 'bridgehut') {
     box(ctx, 0.15, 0.15, 0.85, 0.85, 0, 11, '#8a8676', null, 0.6, seed);
     flat(ctx, 0.1, 0.1, 0.9, 0.9, 11.5, '#4c4a42');

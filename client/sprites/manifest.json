@@ -1579,6 +1579,23 @@
   },
   "scale": 2
  },
+ "techairport_ALL": {
+  "anchor": [
+   356.0,
+   208.0
+  ],
+  "fh": 362,
+  "frame": 712,
+  "fw": 712,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
  "tenementB_arctic": {
   "anchor": [
    350.0,
@@ -1750,6 +1767,23 @@
   "rows": {
    "body": {
     "dirs": 1,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "transport_ALL": {
+  "anchor": [
+   200.0,
+   200.0
+  ],
+  "fh": 400,
+  "frame": 400,
+  "fw": 400,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
     "row": 0
    }
   },

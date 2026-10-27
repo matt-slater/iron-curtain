@@ -137,13 +137,13 @@ export class AI {
     // garrison civilian buildings near the base / rally point with spare infantry (RA2 style)
     if ((g.tick + this.offset) % (this.prof.think * 4) === 0) this.manageGarrisons(us);
 
-    // engineers grab derricks
+    // engineers grab the tech airport first, then derricks
     for (const u of us) {
       if (u.type !== 'engineer' || u.order.type !== 'idle') continue;
       let best = null, bd = Infinity;
       for (const e of g.entities.values()) {
-        if (e.kind !== 'b' || e.type !== 'derrick' || e.owner >= 0) continue;
-        const d = Math.hypot(e.x - u.x, e.y - u.y);
+        if (e.kind !== 'b' || (e.type !== 'derrick' && e.type !== 'techairport') || e.owner >= 0) continue;
+        const d = Math.hypot(e.x - u.x, e.y - u.y) - (e.type === 'techairport' ? 30 : 0);
         if (d < bd) { bd = d; best = e; }
       }
       if (best) this.cmd({ c: 'target', ids: [u.id], target: best.id });
@@ -189,6 +189,13 @@ export class AI {
       if (loiter.length) this.cmd({ c: 'move', ids: loiter.map(u => u.id), x: rally.x, y: rally.y });
       const dig = home.filter(u => u.order.type === 'idle' && !u.deployed && !u.path && g.ud(u).deployWeapon && Math.hypot(u.x - rally.x, u.y - rally.y) <= 6);
       if (dig.length) this.cmd({ c: 'deploy', ids: dig.map(u => u.id) });
+    }
+
+    // paradrop onto the enemy's ore field / base edge
+    if (p.paraCharge >= D.PARA_CHARGE && this.base) {
+      const harv = this.nearestEnemy(this.base, e => e.kind === 'u' && e.type === 'harvester');
+      const t = harv || this.pickTarget(null, false);
+      if (t) this.cmd({ c: 'para', x: t.x + 1.5, y: t.y + 1.5 });
     }
 
     // nuke
@@ -248,7 +255,7 @@ export class AI {
     }
     if (cat === 'infantry') {
       const engineers = p.unitCounts.engineer || 0;
-      const freeDerrick = [...g.entities.values()].some(e => e.type === 'derrick' && e.owner < 0);
+      const freeDerrick = [...g.entities.values()].some(e => (e.type === 'derrick' || e.type === 'techairport') && e.owner < 0);
       if (freeDerrick && engineers < 1 && Math.random() < 0.15 && g.canBuild(p, 'engineer')) return 'engineer';
       if (this.enemyAir() > 1 && opts.includes('manpads') && Math.random() < 0.3) return 'manpads';
       const at = opts.find(t => UNITS[t].look === 'atinf');

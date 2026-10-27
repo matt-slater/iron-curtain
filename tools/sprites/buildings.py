@@ -614,6 +614,34 @@ def bridgehut():
     return {'layers': {'body': s.root}}
 
 
+def techairport():
+    s = Site(3, 3)
+    s.pad(2, mat('#666860', grime=0.45, scale=18))
+    # runway stub with centre-line dashes
+    s.b(0.1, 0.15, 2.9, 1.15, 2, 2.3, mat('#3e3f3a', grime=0.4, scale=14), bevel=0)
+    for i in range(6):
+        s.b(0.25 + i * 0.45, 0.62, 0.45 + i * 0.45, 0.68, 2.3, 2.5, mat('#d8d4bc', grime=0.2), bevel=0)
+    # terminal
+    wall = mat('#b4b2a4', grime=0.3, scale=26)
+    s.b(0.2, 1.4, 2.0, 2.8, 2, 14, wall)
+    s.b(0.2, 2.62, 2.0, 2.82, 13.5, 15.5, team_mat(), team=True, bevel=0)
+    s.windows_y(0.3, 1.9, 2.8, 6, 7, mat(**GLASS), lit=0.5, seed=91, hgt=5, wid=0.18)
+    s.windows_x(1.5, 2.7, 2.0, 6, 3, mat(**GLASS), lit=0.5, seed=92, hgt=5)
+    s.b(0.25, 1.45, 1.95, 2.75, 14, 15, mat('#5a5c58'), bevel=0)
+    for x in (0.6, 1.4):
+        s.b(x, 1.9, x + 0.25, 2.2, 15, 18, mat('#7a7c76'))
+    # control tower
+    s.b(2.25, 1.85, 2.65, 2.25, 2, 26, mat('#a8a698', grime=0.3))
+    s.b(2.15, 1.75, 2.75, 2.35, 26, 31, mat(**GLASS))
+    s.b(2.12, 1.72, 2.78, 2.38, 31, 32.5, team_mat(), team=True)
+    s.c(2.45, 2.05, 0.01, 32.5, 40, mat('#2a2a26'), verts=6)
+    s.c(2.45, 2.05, 0.03, 39.5, 41, mat('#e04030', emit=2, grime=0), verts=8)
+    # windsock
+    s.c(2.85, 1.3, 0.008, 2, 14, mat('#8f8f86'), verts=6)
+    s.rod((2.85, 1.3, 13), (2.62, 1.3, 11.5), 0.03, mat('#e07a20', grime=0.2))
+    return {'layers': {'body': s.root}}
+
+
 # ---------- civilian buildings per biome ----------
 CIV = {
     'temperate': dict(walls=['#b0a48a', '#9a8e7e', '#8a8a84'], roof='#8a3e2a', flat='#5a5852', pave='#6e6c64', glass='#3e5462', trim='#d8d0bc'),
@@ -762,6 +790,7 @@ SPECS = {
     'airfield_PACT': spec(lambda: airfield(True), 3, 3, 40),
     'derrick_ALL': spec(derrick, 2, 2, 46),
     'bridgehut_ALL': spec(bridgehut, 1, 1, 26),
+    'techairport_ALL': spec(techairport, 3, 3, 44),
 }
 for _b in CIV:
     SPECS[f'house_{_b}'] = spec(lambda b=_b: civ_house(b), 2, 2, 40)

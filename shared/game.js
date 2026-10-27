@@ -38,6 +38,7 @@ export class Game {
     this.entities = new Map();
     this.nextId = 1;
     this.projectiles = [];
+    this.drops = [];
     this.events = [];
     this.oreDirty = new Set();
     this.pf = new PathFinder(this.w, this.h);
@@ -62,6 +63,7 @@ export class Game {
       unitCounts: {},
       queues: { building: [], defense: [], infantry: [], vehicle: [], air: [] },
       superCharge: 0,
+      paraCharge: 0,
       blackout: 0,
       defeated: false,
       incomeMult: s.ai ? ({ easy: 0.8, normal: 1, hard: 1.3 }[s.difficulty] || 1) : 1,
@@ -83,7 +85,88 @@ export class Game {
       if (this.canPlaceRaw('derrick', d.x, d.y)) this.addBuilding('derrick', -1, d.x, d.y);
     }
     this.setupBridges();
+    this.placeTechAirport();
     this.updateVisibility();
+  }
+
+  // ---------- tech airport + paradrops ----------
+  // One neutral airport at the centre of the map (equidistant on symmetric maps), never cutting off a route.
+  placeTechAirport() {
+    const starts = this.map.starts;
+    const reach = () => { const R = this.region(MOVE.GROUND); const r0 = this.regionAt(MOVE.GROUND, starts[0].x + 0.5, starts[0].y + 0.5); return starts.every(st => R[this.idx(st.x, st.y)] === r0 || this.regionAt(MOVE.GROUND, st.x + 0.5, st.y + 0.5) === r0); };
+    if (!reach()) return;
+    const c = Math.floor(this.w / 2) - 1;
+    const fair = (tx, ty) => {
+      const ds = starts.map(st => Math.hypot(st.x - tx - 1.5, st.y - ty - 1.5));
+      return Math.max(...ds) <= Math.min(...ds) * 1.15 + 1;
+    };
+    for (let r = 0; r <= 20; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      const tx = c + dx, ty = c + dy;
+      if (!fair(tx, ty) || !this.canPlaceRaw('techairport', tx, ty)) continue;
+      // mostly open surroundings so it doesn't sit in a pocket or plug a chokepoint
+      let open = 0;
+      for (let y = ty - 1; y <= ty + 3; y++) for (let x = tx - 1; x <= tx + 3; x++) {
+        if ((x === tx - 1 || x === tx + 3 || y === ty - 1 || y === ty + 3) && this.inb(x, y) && this.passable(this.idx(x, y), MOVE.GROUND)) open++;
+      }
+      if (open < 11) continue;
+      const b = this.addBuilding('techairport', -1, tx, ty);
+      if (reach()) return b;
+      this.removeEntity(b);
+    }
+    // centre is blocked (lakes, rivers, dense city): a pair mirrored through the centre keeps it fair
+    for (let r = 2; r <= 24; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      const tx = c + dx, ty = c + dy, mx = this.w - 3 - tx, my = this.h - 3 - ty;
+      if (!this.canPlaceRaw('techairport', tx, ty) || !this.canPlaceRaw('techairport', mx, my)) continue;
+      if (Math.abs(tx - mx) < 4 && Math.abs(ty - my) < 4) continue;
+      const a1 = this.addBuilding('techairport', -1, tx, ty), a2 = this.addBuilding('techairport', -1, mx, my);
+      if (reach()) return a1;
+      this.removeEntity(a1); this.removeEntity(a2);
+    }
+    return null;
+  }
+
+  callParadrop(p, x, y) {
+    const port = [...this.entities.values()].find(e => e.kind === 'b' && e.owner === p.id && e.type === 'techairport');
+    if (!port || p.paraCharge < D.PARA_CHARGE) return false;
+    p.paraCharge = 0;
+    // the transport enters from the map edge beyond the airport and flies over the drop zone
+    let dx = x - port.x, dy = y - port.y;
+    const len = Math.hypot(dx, dy) || 1; dx /= len; dy /= len;
+    let sx = x - dx * (this.w + 6), sy = y - dy * (this.h + 6);
+    const k = Math.max(0, Math.min(1, ...[[sx, -3, x], [sx, this.w + 3, x], [sy, -3, y], [sy, this.h + 3, y]].map(([a, lim, b]) => (a < -3 || a > this.w + 3) ? (lim - b) / (a - b) : 1)));
+    sx = x + (sx - x) * k; sy = y + (sy - y) * k;
+    this.drops.push({ id: this.nextId++, owner: p.id, x: sx, y: sy, tx: x, ty: y, dx, dy, dropped: false, t: 0 });
+    for (const o of this.players) this.msg(o.id, o.id === p.id ? 'Paratroopers en route' : 'Enemy paratroopers detected', o.id === p.id ? 'paradrop' : 'error');
+    return true;
+  }
+
+  updateDrops() {
+    const keep = [];
+    for (const d of this.drops) {
+      d.x += d.dx * D.PARA_PLANE_SPEED * DT; d.y += d.dy * D.PARA_PLANE_SPEED * DT; d.t += DT;
+      if (!d.dropped && (d.x - d.tx) * d.dx + (d.y - d.ty) * d.dy >= -0.3) {
+        d.dropped = true;
+        const p = this.players[d.owner];
+        if (!p.defeated) {
+          const [type, n] = D.PARA_SQUAD[p.faction];
+          const taken = new Set();
+          for (let i = 0; i < n; i++) {
+            const a = i * 2.4, r = 0.4 + 0.35 * Math.sqrt(i);
+            const spot = this.nearestFree(Math.floor(d.tx + Math.cos(a) * r), Math.floor(d.ty + Math.sin(a) * r), false, taken);
+            if (!spot) continue;
+            taken.add(this.idx(spot.x, spot.y));
+            const u = this.spawnUnit(type, d.owner, spot.x + 0.25 + this.rand() * 0.5, spot.y + 0.25 + this.rand() * 0.5);
+            u.para = true; u.alt = D.PARA_ALT - i * 3;
+            u.dir = u.turret = Math.atan2(d.dy, d.dx);
+          }
+        }
+      }
+      const out = d.x < -6 || d.y < -6 || d.x > this.w + 6 || d.y > this.h + 6;
+      if (!(d.dropped && out) && d.t < 60) keep.push(d);
+    }
+    this.drops = keep;
   }
 
   // ---------- bridges (RA2 style: destructible, rebuilt by an engineer at either repair hut) ----------
@@ -222,7 +305,7 @@ export class Game {
   }
 
   canTarget(pid, t) {
-    if (!t || t.dead) return false;
+    if (!t || t.dead || t.para) return false;
     if (t.kind === 'u' && !this.detected(pid, t)) return false;
     return true;
   }
@@ -290,7 +373,7 @@ export class Game {
     if (!this.canPlaceRaw(type, tx, ty)) return false;
     const d = BUILDINGS[type];
     for (const e of this.entities.values()) {
-      if (e.kind !== 'b' || e.owner !== pid || e.type === 'derrick' || D.isCivilian(e.type)) continue;
+      if (e.kind !== 'b' || e.owner !== pid || e.type === 'derrick' || BUILDINGS[e.type].tech || D.isCivilian(e.type)) continue;
       const gx = Math.max(e.tx - (tx + d.w), tx - (e.tx + e.w), 0);
       const gy = Math.max(e.ty - (ty + d.h), ty - (e.ty + e.h), 0);
       if (Math.max(gx, gy) <= D.BUILD_RADIUS) return true;
@@ -451,6 +534,12 @@ export class Game {
           }
         }
       }
+      if ((p.counts.techairport || 0) > 0) {
+        if (p.paraCharge < D.PARA_CHARGE) {
+          p.paraCharge = Math.min(D.PARA_CHARGE, p.paraCharge + DT);
+          if (p.paraCharge >= D.PARA_CHARGE) this.msg(p.id, 'Paradrop ready', 'paraready');
+        }
+      } else p.paraCharge = 0;
       if ((p.counts.silo || 0) > 0) {
         if (this.hasPower(p.id) && p.superCharge < D.SUPER_CHARGE) {
           p.superCharge = Math.min(D.SUPER_CHARGE, p.superCharge + DT);
@@ -786,6 +875,9 @@ export class Game {
         for (const o of this.players) this.msg(o.id, 'Nuclear missile launched', 'nukelaunch');
         break;
       }
+      case 'para':
+        this.callParadrop(p, Math.max(0.5, Math.min(this.w - 0.5, num(cmd.x))), Math.max(0.5, Math.min(this.h - 0.5, num(cmd.y))));
+        break;
       case 'surrender':
         this.defeat(p);
         break;
@@ -1084,7 +1176,7 @@ export class Game {
     let best = null, bestScore = Infinity;
     const pid = e.owner;
     this.query(e.x, e.y, range, t => {
-      if (!this.isEnemy(pid, t.owner)) return;
+      if (!this.isEnemy(pid, t.owner) || t.para) return;
       if (D.effectVs(w, t) <= 0.05) return;
       if (t.kind === 'u' && !this.detected(pid, t)) return;
       const d = this.distTo(e, t);
@@ -1331,6 +1423,11 @@ export class Game {
   // ---------- unit AI ----------
   updateUnit(u) {
     const d = this.ud(u);
+    if (u.para) {
+      u.alt -= D.PARA_FALL * DT;
+      if (u.alt <= 0) { u.alt = 0; u.para = false; this.setOrder(u, { type: 'idle' }); u.guardX = u.x; u.guardY = u.y; }
+      return;
+    }
     if (u.cooldown > 0) u.cooldown -= DT;
     if (d.air === 'jet') {
       if (u.burstLeft > 0) {
@@ -1770,7 +1867,11 @@ export class Game {
     if (p.defeated) return;
     p.defeated = true;
     p.queues = { building: [], defense: [], infantry: [], vehicle: [], air: [] };
-    for (const e of [...this.entities.values()]) if (e.owner === p.id) this.kill(e, -1);
+    for (const e of [...this.entities.values()]) {
+      if (e.owner !== p.id) continue;
+      if (e.kind === 'b' && BUILDINGS[e.type].tech) { e.owner = -1; e.target = null; continue; }
+      this.kill(e, -1);
+    }
     for (const o of this.players) this.msg(o.id, `${p.name} has been defeated`, o.id === p.id ? 'defeat' : '');
   }
 
@@ -1778,7 +1879,7 @@ export class Game {
     const has = this.players.map(() => false);
     for (const e of this.entities.values()) {
       if (e.owner < 0) continue;
-      if ((e.kind === 'b' && e.type !== 'derrick' && !D.isCivilian(e.type)) || (e.kind === 'u' && e.type === 'mcv')) has[e.owner] = true;
+      if ((e.kind === 'b' && e.type !== 'derrick' && !BUILDINGS[e.type].tech && !D.isCivilian(e.type)) || (e.kind === 'u' && e.type === 'mcv')) has[e.owner] = true;
     }
     for (const p of this.players) if (!p.defeated && !has[p.id]) this.defeat(p);
     const alive = this.players.filter(p => !p.defeated);
@@ -1806,6 +1907,7 @@ export class Game {
     this.rebuildGrid();
     this.separate();
     this.updateProjectiles();
+    this.updateDrops();
     if (this.tick % 45 === 0) this.regrowOre();
     if (this.tick % TICK_RATE === 0) this.checkVictory();
   }
@@ -1829,7 +1931,7 @@ export class Game {
       Math.round(p.zs || 0), Math.round(p.zt || 0)]);
     const pl = this.players.map(p => ({
       c: Math.floor(p.credits), pw: p.power, dr: p.drain, d: p.defeated ? 1 : 0, bo: p.blackout > 0 ? 1 : 0,
-      sc: Math.round(p.superCharge),
+      sc: Math.round(p.superCharge), pc: Math.round(p.paraCharge),
       q: Object.fromEntries(CATS.map(c => [c, p.queues[c].map(i => [i.type, Math.round(i.progress * 1000)])])),
       st: p.stats,
     }));
@@ -1839,6 +1941,7 @@ export class Game {
     const ev = this.events;
     this.events = [];
     const br = this.bridges.map(b => Math.ceil(b.hp / b.maxHp * 100));
-    return { t: this.tick, e, pj, pl, ore, ev, br, over: this.over ? (this.winners || []) : null };
+    const dr = this.drops.map(d => [d.id, Math.round(d.x * 100), Math.round(d.y * 100), Math.round(Math.atan2(d.dy, d.dx) * 100)]);
+    return { t: this.tick, e, pj, pl, ore, ev, br, dr, over: this.over ? (this.winners || []) : null };
   }
 }

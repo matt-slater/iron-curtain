@@ -98,6 +98,7 @@ export class GameUI {
     this.on(document.getElementById('btn-sell'), 'click', () => this.setMode(this.mode === 'sell' ? null : 'sell'));
     this.on(document.getElementById('btn-repair'), 'click', () => this.setMode(this.mode === 'repair' ? null : 'repair'));
     this.on(document.getElementById('btn-nuke'), 'click', () => this.setMode('nuke'));
+    this.on(document.getElementById('btn-para'), 'click', () => this.setMode('para'));
     this.on(document.getElementById('btn-menu'), 'click', () => this.toggleMenu());
     this.on(document.getElementById('btn-resume'), 'click', () => this.toggleMenu(false));
     this.on(document.getElementById('btn-surrender'), 'click', () => { if (confirm('Surrender this game?')) { this.toggleMenu(false); this.opts.onSurrender(); } });
@@ -160,9 +161,9 @@ export class GameUI {
         } else play('error');
         return;
       }
-      if (this.mode === 'nuke') {
+      if (this.mode === 'nuke' || this.mode === 'para') {
         const w = this.r.screenToWorld(p.x, p.y);
-        this.cmd({ c: 'super', x: w.x, y: w.y });
+        this.cmd({ c: this.mode === 'nuke' ? 'super' : 'para', x: w.x, y: w.y });
         this.mode = null;
         return;
       }
@@ -435,7 +436,7 @@ export class GameUI {
       if (this.placing) cursor = this.placeAt && this.placeAt.ok ? 'copy' : 'not-allowed';
       else if (this.mode === 'sell') cursor = t && t.kind === 'b' && t.owner === this.s.you ? 'alias' : 'not-allowed';
       else if (this.mode === 'repair') cursor = t && t.kind === 'b' && t.owner === this.s.you ? 'help' : 'not-allowed';
-      else if (this.mode === 'attackMove' || this.mode === 'nuke') cursor = 'crosshair';
+      else if (this.mode === 'attackMove' || this.mode === 'nuke' || this.mode === 'para') cursor = 'crosshair';
       else if (this.rightDown && this.rightDown.panning) cursor = 'grabbing';
       else if (t) {
         const act = this.actionFor(t);
@@ -485,6 +486,15 @@ export class GameUI {
     nukeBtn.classList.toggle('ready', ready);
     const left = D.SUPER_CHARGE - me.superCharge;
     document.getElementById('nuke-timer').textContent = hasSilo && !ready ? `Nuclear missile: ${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}` : ready ? 'NUCLEAR MISSILE READY' : '';
+
+    const paraBtn = document.getElementById('btn-para');
+    const hasPort = (s.counts.techairport || 0) > 0;
+    const paraReady = hasPort && me.paraCharge >= D.PARA_CHARGE;
+    paraBtn.hidden = !hasPort;
+    paraBtn.disabled = !paraReady;
+    paraBtn.classList.toggle('ready', paraReady);
+    const pl = D.PARA_CHARGE - (me.paraCharge || 0);
+    document.getElementById('para-timer').textContent = hasPort && !paraReady ? `Paradrop: ${Math.floor(pl / 60)}:${String(Math.floor(pl % 60)).padStart(2, '0')}` : paraReady ? 'PARADROP READY' : '';
 
     const list = D.buildList(me.country, this.tab);
     const avail = list.map(t => [t, this.canBuild(t)]);

@@ -37,6 +37,7 @@ export class ClientState {
     this.explored = new Uint8Array(this.w * this.h);
     this.visible = new Uint8Array(this.w * this.h);
     this.rising = new Map();
+    this.planes = new Map();
     this.ghosts = new Map();
     this.bmap = new Int32Array(this.w * this.h);
     this.effects = [];
@@ -105,6 +106,16 @@ export class ClientState {
     for (const id of this.ents.keys()) if (!seen.has(id)) this.ents.delete(id);
 
     const pseen = new Set();
+    // paradrop transport planes (interpolated like units)
+    const dseen = new Set();
+    for (const d of s.dr || []) {
+      dseen.add(d[0]);
+      let pl = this.planes.get(d[0]);
+      const nx = d[1] / 100, ny = d[2] / 100;
+      if (!pl) { pl = { id: d[0], x: nx, y: ny, px: nx, py: ny }; this.planes.set(d[0], pl); }
+      pl.px = pl.nx ?? nx; pl.py = pl.ny ?? ny; pl.nx = nx; pl.ny = ny; pl.dir = d[3] / 100;
+    }
+    for (const id of this.planes.keys()) if (!dseen.has(id)) this.planes.delete(id);
     for (const p of s.pj) {
       pseen.add(p[0]);
       let pr = this.projs.get(p[0]);
@@ -119,7 +130,7 @@ export class ClientState {
     s.pl.forEach((q, i) => {
       const p = this.players[i];
       p.credits = q.c; p.power = q.pw; p.drain = q.dr; p.defeated = !!q.d; p.blackout = !!q.bo;
-      p.superCharge = q.sc; p.queues = q.q; p.stats = q.st;
+      p.superCharge = q.sc; p.paraCharge = q.pc || 0; p.queues = q.q; p.stats = q.st;
     });
 
     if (s.br) s.br.forEach((hp, i) => {
@@ -218,6 +229,7 @@ export class ClientState {
 
   interpolate(now) {
     const t = Math.min(1.2, (now - this.snapTime) / SNAP_MS);
+    for (const pl of this.planes.values()) { pl.x = pl.px + (pl.nx - pl.px) * t; pl.y = pl.py + (pl.ny - pl.py) * t; }
     for (const e of this.ents.values()) {
       if (e.kind !== 'u') continue;
       const k = Math.min(1, t);
@@ -251,6 +263,8 @@ export class ClientState {
         else if (text === 'Garrison eliminated') speak('Garrison lost');
         else if (snd === 'ready') { speak('Construction complete'); this.emit('ready'); }
         else if (snd === 'nukeready') speak(text);
+        else if (snd === 'paraready') speak('Paradrop ready');
+        else if (snd === 'paradrop') { play('jet'); speak('Reinforcements inbound'); }
         else if (snd === 'nukelaunch') { play('siren'); speak('Nuclear missile launched'); }
         else if (snd === 'error') play('error');
         else if (snd === 'capture') speak(text.startsWith('Agent') ? 'Infiltration successful' : 'Building captured');
