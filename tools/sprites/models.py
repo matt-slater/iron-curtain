@@ -186,9 +186,12 @@ def star(name, loc, size, facing, material, parent):
     vs = [bm.verts.new((u, 0, v)) for u, v in pts]
     for i in range(10):
         bm.faces.new((c, vs[i], vs[(i + 1) % 10]))
-    rot = {'+y': 0, '-y': math.pi, '+x': -math.pi / 2, '-x': math.pi / 2}[facing]
     from mathutils import Matrix
-    bmesh.ops.transform(bm, matrix=Matrix.Translation(Vector(loc)) @ Matrix.Rotation(rot, 4, 'Z'), verts=bm.verts)
+    if facing == '+z':
+        rotm = Matrix.Rotation(-math.pi / 2, 4, 'X')  # lie flat, pointing forward
+    else:
+        rotm = Matrix.Rotation({'+y': 0, '-y': math.pi, '+x': -math.pi / 2, '-x': math.pi / 2}[facing], 4, 'Z')
+    bmesh.ops.transform(bm, matrix=Matrix.Translation(Vector(loc)) @ rotm, verts=bm.verts)
     return _obj(name, bm, material, parent)
 
 
@@ -385,84 +388,634 @@ def war_miner():
     return {'layers': {'body': body}}
 
 
+
+
+# ---------- shared faction materials ----------
+CAMO = ['#6a4220', '#1e1d16', '#46602a']
+RED = '#c42a1c'
+
+
+def nato_set(base='#6f6c34', camo=CAMO, scale=30):
+    return dict(hull=mat(base, camo=camo, grime=0.15, scale=scale), plain=mat('#5e5a2c', grime=0.2),
+                rubber=mat('#24251f', rough=0.9, grime=0.1), steel=mat('#5a5844', rough=0.6, metal=0.3),
+                gun=mat('#2c2c24', metal=0.3, grime=0.2), glass=mat('#4c6674', rough=0.15, metal=0.2, grime=0))
+
+
+def pact_set(base=None):
+    return dict(hull=mat(base or PACT['hull'], grime=0.2), turret=mat('#548a38', grime=0.18), dark=mat(PACT['dark'], grime=0.25),
+                rubber=mat(PACT['rubber'], rough=0.9, grime=0.1), steel=mat(PACT['steel'], rough=0.6, metal=0.3),
+                gun=mat('#2c3424', metal=0.3, grime=0.2), red=mat(RED, rough=0.5, grime=0.05),
+                glass=mat('#4c6674', rough=0.15, metal=0.2, grime=0))
+
+
+def hull_shape(L, W, nose=0.08, tail=0.0):
+    """Hull outline with chamfered front corners (and optionally rear)."""
+    return [(-L, -W + tail), (-L + tail, -W), (L - nose, -W), (L, -W + nose), (L, W - nose), (L - nose, W), (-L + tail, W), (-L, W - tail)]
+
+
+def scaled(pts, k, dx=0.0):
+    return [(x * k + dx, y * k) for x, y in pts]
+
+
+def tracked_hull(body, m, L, W, z_top, wheels=6, rollers=0, skirt=None, glacis=0.18, track_w=0.13):
+    tracks(body, L - 0.01, W - track_w / 2 + 0.005, track_w, H(5.4), wheels, m['steel'], m['rubber'], return_rollers=rollers, skirt=skirt)
+    box('lower', -L, L - 0.04, -W + track_w, W - track_w, H(1.8), H(5.4), m.get('dark', m.get('plain')), body)
+    loft('upper', rect(-L, L, -W - 0.005, W + 0.005), H(5.4), rect(-L + 0.01, L - glacis, -W + 0.01, W - 0.01), z_top, m['hull'], body)
+
+
+# ---------- NATO vehicles ----------
+def m151():
+    body, tur = root('body'), root('turret')
+    m = nato_set()
+    wheelset(body, [-0.2, 0.2], 0.17, H(3.2), m['steel'], m['rubber'], 0.05)
+    box('chassis', -0.33, 0.33, -0.13, 0.13, H(2.6), H(4.6), mat('#22231c'), body)
+    loft('tub', rect(-0.33, 0.12, -0.17, 0.17), H(4.2), rect(-0.32, 0.12, -0.165, 0.165), H(8.0), m['hull'], body, open_top=True)
+    box('floor', -0.3, 0.1, -0.15, 0.15, H(4.6), H(5.2), mat('#2a2a22'), body)
+    for s in (1, -1):
+        box('seat', -0.02, 0.08, s * 0.08 - 0.04, s * 0.08 + 0.04, H(5.2), H(8.8), mat('#3a3426'), body)
+    loft('hood', rect(0.12, 0.35, -0.16, 0.16), H(4.2), rect(0.12, 0.33, -0.15, 0.15), H(8.0), m['hull'], body)
+    box('star', 0.18, 0.28, -0.05, 0.05, H(8.0), H(8.3), team_mat(), body, team=True, bevel=0)
+    box('screen', 0.1, 0.125, -0.15, 0.15, H(8.0), H(12.5), m['glass'], body, bevel=0)
+    cyl('spare', H(2.4), 0.05, (-0.36, 0, H(6.5)), 'x', m['rubber'], body)
+    box('jerry', -0.32, -0.26, 0.09, 0.15, H(8.0), H(10.5), team_mat(), body, team=True)
+    # pintle-mounted M60 (turret layer, pivot just behind centre)
+    cyl('post', H(0.6), H(5.5), (0, 0, H(10.5)), 'z', m['steel'], tur, verts=8)  # sits at the -0.08 pivot
+    barrel('m60', -0.06, 0.3, H(0.7), 0, H(13.4), m['gun'], tur)
+    box('mgbody', -0.07, 0.06, -0.022, 0.022, H(12.6), H(14.0), m['gun'], tur, bevel=0)
+    box('ammo', -0.02, 0.04, 0.025, 0.06, H(12.4), H(13.6), mat('#4e5232'), tur, bevel=0)
+    return {'layers': {'body': body, 'turret': tur}, 'pivot': -0.08}
+
+
+def m109():
+    body, tur = root('body'), root('turret')
+    m = nato_set()
+    L, W = 0.5, 0.36
+    tracked_hull(body, m, L, W, H(8.0), wheels=7, glacis=0.12)
+    box('stow', 0.18, 0.4, -0.3, 0.3, H(8.0), H(9.2), m['plain'], body)
+    loft('turret', rect(-0.42, 0.2, -0.27, 0.27), H(8.0), rect(-0.4, 0.16, -0.26, 0.26), H(17.0), m['hull'], tur, bevel=0.012)
+    box('bustle', -0.48, -0.4, -0.22, 0.22, H(10), H(15.5), team_mat(), tur, team=True)
+    box('mantlet', 0.16, 0.24, -0.08, 0.08, H(10.5), H(15), m['plain'], tur)
+    barrel('gun', 0.22, 0.62, H(1.4), 0, H(13), m['gun'], tur)
+    box('brake', 0.8, 0.88, -0.035, 0.035, H(12), H(14.2), m['gun'], tur, bevel=0)
+    cyl('hatch', 0.06, H(1), (-0.15, -0.14, H(17.5)), 'z', m['plain'], tur, verts=12)
+    barrel('m2', -0.15, 0.2, H(0.5), -0.14, H(19), mat('#1c1d18'), tur)
+    return {'layers': {'body': body, 'turret': tur}}
+
+
+def m113_hull(body, m, L=0.44, W=0.32):
+    tracks(body, L - 0.01, W - 0.06, 0.12, H(5.0), 5, m['steel'], m['rubber'])
+    loft('hull', [(-L, -W + 0.06), (L - 0.02, -W + 0.06), (L + 0.03, -0.2), (L + 0.03, 0.2), (L - 0.02, W - 0.06), (-L, W - 0.06)], H(2.4),
+         [(-L, -W + 0.06), (L - 0.16, -W + 0.06), (L - 0.13, -0.2), (L - 0.13, 0.2), (L - 0.16, W - 0.06), (-L, W - 0.06)], H(11.0), m['hull'], body)
+    box('fender', -L, L, -W, W, H(5.0), H(5.6), m['plain'], body)
+
+
+def vulcan():
+    body, tur = root('body'), root('turret')
+    m = nato_set()
+    m113_hull(body, m)
+    box('rampbox', -0.46, -0.42, -0.2, 0.2, H(4), H(10), team_mat(), body, team=True)
+    cyl('ring', 0.17, H(1.5), (-0.05, 0, H(11.6)), 'z', m['plain'], tur, verts=16)
+    box('mount', -0.16, 0.08, -0.13, 0.13, H(12), H(16), m['hull'], tur)
+    box('side', -0.16, 0.06, 0.13, 0.17, H(12), H(16.5), team_mat(), tur, team=True)
+    gat = pivot('gat', tur, (0.05, -0.02, H(15)))
+    for i in range(6):
+        a = i * math.pi / 3
+        cyl('b', H(0.4), 0.4, (0.22, math.cos(a) * 0.022, math.sin(a) * 0.022), 'x', m['gun'], gat, verts=6)
+    cyl('drum', 0.05, 0.1, (0.0, 0, 0), 'x', m['gun'], gat, verts=12)
+    cyl('dish', 0.07, 0.02, (-0.06, 0.2, H(19)), 'y', mat('#a8a898', rough=0.4), tur, verts=16)
+    cyl('dishpost', H(0.4), H(3), (-0.06, 0.17, H(17.5)), 'z', m['steel'], tur, verts=6)
+    return {'layers': {'body': body, 'turret': tur}}
+
+
+def abrams():
+    body, tur = root('body'), root('turret')
+    m = nato_set('#9a8a5a', ['#6a5432', '#3e3a2a'], 26)
+    L, W = 0.52, 0.37
+    tracks(body, L - 0.01, W - 0.07, 0.14, H(5.4), 7, m['steel'], m['rubber'], skirt=m['hull'])
+    box('lower', -L, L - 0.04, -0.23, 0.23, H(1.8), H(5.4), m['plain'], body)
+    loft('upper', rect(-L, L, -W, W), H(5.4), rect(-L + 0.01, L - 0.22, -W + 0.01, W - 0.01), H(8.6), m['hull'], body)
+    # wide, low, angular turret
+    shape = [(-0.34, -0.25), (0.14, -0.27), (0.3, -0.14), (0.3, 0.14), (0.14, 0.27), (-0.34, 0.25)]
+    loft('turret', shape, H(8.6), scaled(shape, 0.9, -0.02), H(13.6), m['hull'], tur, bevel=0.01)
+    box('bustle', -0.46, -0.33, -0.2, 0.2, H(9.4), H(13), team_mat(), tur, team=True)
+    barrel('gun', 0.28, 0.55, H(1.15), 0, H(11.4), m['gun'], tur)
+    cyl('cupola', 0.065, H(1.8), (-0.1, -0.12, H(14.4)), 'z', m['hull'], tur, verts=12)
+    barrel('m2', -0.1, 0.2, H(0.5), -0.12, H(15.6), mat('#1c1d18'), tur)
+    for s in (1, -1):
+        box('smoke', 0.06, 0.12, s * 0.27 - 0.02, s * 0.27 + 0.02, H(11), H(13), m['plain'], tur, bevel=0)
+    return {'layers': {'body': body, 'turret': tur}}
+
+
+def leopard2():
+    body, tur = root('body'), root('turret')
+    m = nato_set('#3f5a2a', ['#5a4228', '#1a1a14'], 34)
+    L, W = 0.52, 0.36
+    tracks(body, L - 0.01, W - 0.07, 0.14, H(5.4), 7, m['steel'], m['rubber'], return_rollers=4, skirt=m['hull'])
+    box('lower', -L, L - 0.04, -0.22, 0.22, H(1.8), H(5.4), m['plain'], body)
+    loft('upper', rect(-L, L, -W, W), H(5.4), rect(-L + 0.01, L - 0.12, -W + 0.01, W - 0.01), H(8.8), m['hull'], body)
+    # tall boxy turret with vertical front armour
+    loft('turret', rect(-0.36, 0.26, -0.24, 0.24), H(8.8), rect(-0.34, 0.24, -0.22, 0.22), H(15.0), m['hull'], tur, bevel=0.012)
+    box('bustle', -0.46, -0.36, -0.2, 0.2, H(9.6), H(14), team_mat(), tur, team=True)
+    barrel('gun', 0.26, 0.64, H(1.1), 0, H(11.8), m['gun'], tur)
+    box('periscope', 0.06, 0.16, 0.08, 0.16, H(15), H(17), m['plain'], tur)
+    return {'layers': {'body': body, 'turret': tur}}
+
+
+def merkava():
+    body, tur = root('body'), root('turret')
+    m = nato_set('#9a9278', ['#7a7258'], 50)
+    L, W = 0.55, 0.36
+    tracks(body, L - 0.01, W - 0.07, 0.14, H(5.4), 6, m['steel'], m['rubber'], skirt=m['hull'])
+    box('lower', -L, L - 0.04, -0.22, 0.22, H(1.8), H(5.4), m['plain'], body)
+    # engine in front: long sloping nose
+    loft('upper', rect(-L, L, -W, W), H(5.4), rect(-L + 0.01, L - 0.3, -W + 0.01, W - 0.01), H(9.0), m['hull'], body)
+    # long low wedge turret set well back
+    shape = [(0.3, 0), (0.06, -0.2), (-0.38, -0.21), (-0.42, -0.12), (-0.42, 0.12), (-0.38, 0.21), (0.06, 0.2)]
+    loft('turret', [(x - 0.06, y) for x, y in shape], H(9.0), [(x * 0.9 - 0.08, y * 0.85) for x, y in shape], H(13.6), m['hull'], tur, bevel=0.01)
+    barrel('gun', 0.22, 0.56, H(1.1), 0, H(11.4), m['gun'], tur)
+    box('basket', -0.58, -0.47, -0.17, 0.17, H(9.4), H(12.6), team_mat(), tur, team=True)
+    for i in range(7):
+        sphere('chain', 0.014, (-0.5, -0.15 + i * 0.05, H(8.2)), mat('#2a2a22'), tur)
+    cyl('cupola', 0.06, H(1.6), (-0.18, 0.1, H(14.3)), 'z', m['hull'], tur, verts=12)
+    return {'layers': {'body': body, 'turret': tur}}
+
+
+def pluton():
+    body = root('body')
+    m = nato_set('#5d6a3a', ['#3e3424', '#1e1d16'], 30)
+    L, W = 0.52, 0.36
+    tracked_hull(body, m, L, W, H(8.6), wheels=5, glacis=0.14)
+    # big missile container on a cradle, fixed fore-aft
+    cradle = pivot('cradle', body, (-0.3, 0, H(10)))
+    cradle.rotation_euler = (0, -0.08, 0)
+    box('container', 0.0, 0.9, -0.1, 0.1, 0, H(7.5), mat('#c8c0a8', rough=0.5, grime=0.25), cradle)
+    box('band', 0.45, 0.55, -0.105, 0.105, -H(0.2), H(7.7), team_mat(), cradle, team=True, bevel=0)
+    box('cap', 0.88, 0.92, -0.08, 0.08, H(1), H(6.5), mat('#8c2a1a'), cradle, bevel=0)
+    box('legs', -0.1, 0.05, -0.12, 0.12, -H(2), 0, m['plain'], cradle)
+    return {'layers': {'body': body}}
+
+
+def g6():
+    body, tur = root('body'), root('turret')
+    m = nato_set('#9a8650', ['#7a6640'], 40)
+    L, W = 0.58, 0.38
+    wheelset(body, [-0.38, -0.05, 0.34], W - 0.04, H(4.4), m['steel'], m['rubber'], 0.08)
+    loft('hull', [(-L, -W + 0.07), (L - 0.15, -W + 0.07), (L + 0.02, -0.12), (L + 0.02, 0.12), (L - 0.15, W - 0.07), (-L, W - 0.07)], H(3.0),
+         [(-L, -W + 0.08), (L - 0.22, -W + 0.08), (L - 0.06, -0.1), (L - 0.06, 0.1), (L - 0.22, W - 0.08), (-L, W - 0.08)], H(10.0), m['hull'], body)
+    box('cab', 0.22, 0.46, -0.2, 0.2, H(10), H(13.5), m['hull'], body)
+    box('screens', 0.455, 0.465, -0.17, 0.17, H(11), H(13), m['glass'], body, bevel=0)
+    # turret sits towards the rear; the game pivots it at -0.2 along the hull
+    loft('turret', rect(-0.3, 0.2, -0.25, 0.25), H(10), rect(-0.28, 0.17, -0.23, 0.23), H(18), m['hull'], tur, bevel=0.012)
+    box('rear', -0.36, -0.3, -0.2, 0.2, H(11), H(16.5), team_mat(), tur, team=True)
+    barrel('gun', 0.18, 0.78, H(1.4), 0, H(14.5), m['gun'], tur)
+    box('brake', 0.92, 1.0, -0.035, 0.035, H(13.4), H(15.6), m['gun'], tur, bevel=0)
+    return {'layers': {'body': body, 'turret': tur}, 'pivot': -0.2}
+
+
+def mcv(nato):
+    body = root('body')
+    m = nato_set() if nato else pact_set()
+    hull = m['hull']
+    box_c = mat('#9a8650', grime=0.3) if nato else mat(PACT['rust'], grime=0.45)
+    L, W = 0.66, 0.42
+    wheelset(body, [-0.48, -0.26, 0.2, 0.44], W - 0.04, H(4.4), m['steel'], m['rubber'], 0.08)
+    box('chassis', -L, L - 0.02, -0.26, 0.26, H(3), H(6.5), mat('#26271f'), body)
+    loft('cab', rect(0.38, L, -W + 0.05, W - 0.05), H(6.5), rect(0.38, L - 0.07, -W + 0.07, W - 0.07), H(16), hull, body)
+    loft('glass', rect(L - 0.075, L - 0.005, -W + 0.09, W - 0.09), H(11), rect(L - 0.085, L - 0.065, -W + 0.09, W - 0.09), H(15.4), m['glass'], body, bevel=0)
+    box('container', -L, 0.34, -W, W, H(6.5), H(20), box_c, body)
+    for y0, y1 in ((W - 0.005, W + 0.008), (-W - 0.008, -W + 0.005)):
+        box('stripe', -L + 0.04, 0.3, y0, y1, H(12), H(15), team_mat(), body, team=True, bevel=0)
+    box('stripe_r', -L - 0.01, -L, -W + 0.03, W - 0.03, H(12), H(15), team_mat(), body, team=True)
+    # folded crane boom on the roof
+    box('crane_base', -0.2, 0.0, -0.1, 0.1, H(20), H(24), mat('#b08a2a' if nato else '#7a4a26', grime=0.3), body)
+    box('boom', -0.62, 0.1, -0.04, 0.04, H(24), H(26.5), mat('#c9a227' if nato else '#8a5a2a', grime=0.3), body)
+    box('hook', -0.64, -0.6, -0.02, 0.02, H(20), H(24), mat('#2a2a24'), body)
+    if not nato:
+        star('star', (0.52, -W + 0.045, H(11)), 0.05, '-y', m['red'], body)
+    return {'layers': {'body': body}}
+
+
+# ---------- Warsaw Pact vehicles ----------
+def brdm_hull(body, m, L=0.4, W=0.3, apc=False):
+    xs = [-0.28, -0.1, 0.1, 0.28] if apc else [-0.22, 0.22]
+    wheelset(body, xs, W - 0.05, H(3.2), m['steel'], m['rubber'], 0.06)
+    nose = [(-L, -W + 0.05), (L - 0.14, -W + 0.05), (L, -0.1), (L, 0.1), (L - 0.14, W - 0.05), (-L, W - 0.05)]
+    top = [(-L + 0.02, -W + 0.08), (L - 0.2, -W + 0.08), (L - 0.1, -0.08), (L - 0.1, 0.08), (L - 0.2, W - 0.08), (-L + 0.02, W - 0.08)]
+    loft('hull', nose, H(2.6), top, H(10.0), m['hull'], body)
+    for s in (1, -1):
+        box('stow', -L + 0.06, -0.05, s * (W - 0.05) - 0.022, s * (W - 0.05) + 0.022, H(7), H(9.5), team_mat(), body, team=True)
+    star('star', (0.05, -(W - 0.03), H(6.5)), 0.045, '-y', m['red'], body)
+    star('star', (0.05, (W - 0.03), H(6.5)), 0.045, '+y', m['red'], body)
+
+
+def brdm():
+    body, tur = root('body'), root('turret')
+    m = pact_set()
+    brdm_hull(body, m)
+    cyl('turret', 0.1, H(4), (0, 0, H(12)), 'z', m['turret'], tur, verts=8, r2=0.08)
+    barrel('kpvt', 0.06, 0.32, H(0.8), 0, H(12.4), m['gun'], tur)
+    return {'layers': {'body': body, 'turret': tur}}
+
+
+def skot():
+    body, tur = root('body'), root('turret')
+    m = pact_set()
+    brdm_hull(body, m, L=0.55, W=0.36, apc=True)
+    box('troop', -0.5, 0.15, -0.24, 0.24, H(10), H(11.5), m['dark'], body)
+    cyl('turret', 0.1, H(4), (0, 0, H(13)), 'z', m['turret'], tur, verts=8, r2=0.085)
+    barrel('kpvt', 0.06, 0.34, H(0.8), 0, H(13.6), m['gun'], tur)
+    return {'layers': {'body': body, 'turret': tur}}
+
+
+def strela():
+    body, tur = root('body'), root('turret')
+    m = pact_set()
+    brdm_hull(body, m)
+    cyl('ring', 0.08, H(2), (0, 0, H(11)), 'z', m['turret'], tur, verts=10)
+    rack = pivot('rack', tur, (0, 0, H(15)))
+    rack.rotation_euler = (0, -0.35, 0)
+    for qy in (-0.07, 0.07):
+        for qz in (-0.03, 0.03):
+            box('tube', -0.2, 0.22, qy - 0.028, qy + 0.028, qz - 0.025, qz + 0.025, mat('#6a7a4a', grime=0.25), rack, bevel=0.003)
+    box('arm', -0.04, 0.04, -0.12, 0.12, -0.05, -0.03, m['dark'], rack, bevel=0)
+    return {'layers': {'body': body, 'turret': tur}}
+
+
+def ural_cab(body, m, L, W):
+    loft('cab', rect(0.3, L - 0.14, -W + 0.06, W - 0.06), H(6), rect(0.3, L - 0.17, -W + 0.07, W - 0.07), H(15), m['hull'], body)
+    loft('hood', rect(L - 0.14, L, -0.18, 0.18), H(6), rect(L - 0.14, L - 0.02, -0.16, 0.16), H(10.5), m['hull'], body)
+    box('screen', L - 0.175, L - 0.165, -W + 0.1, W - 0.1, H(11), H(14), m['glass'], body, bevel=0)
+    star('star', (0.45, -W + 0.055, H(10)), 0.04, '-y', m['red'], body)
+    star('star', (0.45, W - 0.055, H(10)), 0.04, '+y', m['red'], body)
+
+
+def grad():
+    body = root('body')
+    m = pact_set()
+    L, W = 0.56, 0.36
+    wheelset(body, [-0.38, -0.16, 0.36], W - 0.04, H(4.0), m['steel'], m['rubber'], 0.07)
+    box('chassis', -L, L - 0.02, -0.24, 0.24, H(3), H(6), mat('#22231c'), body)
+    ural_cab(body, m, L, W)
+    box('bed', -L, 0.28, -W + 0.05, W - 0.05, H(6), H(8.5), m['dark'], body)
+    for y0, y1 in ((W - 0.055, W - 0.04), (-W + 0.04, -W + 0.055)):
+        box('trim', -L, 0.28, y0, y1, H(6.5), H(8.0), team_mat(), body, team=True, bevel=0)
+    rack = pivot('rack', body, (-0.2, 0, H(11)))
+    rack.rotation_euler = (0, -0.22, 0)
+    box('frame', -0.32, 0.2, -0.2, 0.2, -H(1.5), 0, m['dark'], rack)
+    for r in range(4):
+        for c in range(8):
+            cyl('tube', 0.02, 0.56, (-0.04, -0.175 + c * 0.05, H(0.6) + r * 0.04), 'x', mat('#3e4a2e', grime=0.3), rack, verts=8)
+    return {'layers': {'body': body}}
+
+
+def shilka():
+    body, tur = root('body'), root('turret')
+    m = pact_set()
+    L, W = 0.47, 0.34
+    tracked_hull(body, m, L, W, H(8.0), wheels=6)
+    loft('turret', rect(-0.3, 0.26, -0.28, 0.28), H(8.0), rect(-0.28, 0.2, -0.26, 0.26), H(15.0), m['turret'], tur, bevel=0.012)
+    box('rear', -0.36, -0.3, -0.24, 0.24, H(9), H(14), team_mat(), tur, team=True)
+    for qy in (-0.06, 0.06):
+        for qz in (H(12.2), H(14.2)):
+            barrel('g', 0.18, 0.4, H(0.55), qy, qz, m['gun'], tur)
+    cyl('dish', 0.1, 0.02, (-0.28, 0, H(20)), 'x', mat('#6a7a50', rough=0.5), tur, verts=16)
+    cyl('dpost', H(0.5), H(5), (-0.26, 0, H(17)), 'z', m['steel'], tur, verts=6)
+    for s in (1, -1):
+        star('star', (-0.05, s * 0.275, H(11.5)), 0.04, '+y' if s > 0 else '-y', m['red'], tur)
+    return {'layers': {'body': body, 'turret': tur}}
+
+
+def obj279():
+    body, tur = root('body'), root('turret')
+    m = pact_set()
+    L, W = 0.6, 0.46
+    for yc in (0.17, 0.36):
+        tracks(body, L - 0.02, yc, 0.11, H(5.0), 6, m['steel'], m['rubber'])
+    # flattened saucer hull deflecting blast from every side
+    oct8 = [(math.cos(a) * L, math.sin(a) * W) for a in [i * math.pi / 6 for i in range(12)]]
+    loft('saucer', oct8, H(3.5), scaled(oct8, 0.72), H(9.5), m['hull'], body, bevel=0.012)
+    dome('dome', 0.33, 0.31, H(8), (0, 0, H(9.4)), m['turret'], tur, cut=0.05)
+    for qy in (-0.06, 0.06):
+        barrel('gun', 0.22, 0.58, H(1.2), qy, H(13), m['gun'], tur)
+    box('mantlet', 0.2, 0.3, -0.12, 0.12, H(11), H(15), m['dark'], tur)
+    loft('bin', [(-0.38, -0.18), (-0.24, -0.22), (-0.24, 0.22), (-0.38, 0.18)], H(10), [(-0.38, -0.17), (-0.24, -0.21), (-0.24, 0.21), (-0.38, 0.17)], H(14), team_mat(), tur, team=True)
+    for s in (1, -1):
+        star('star', (-0.02, s * 0.3, H(13)), 0.055, '+y' if s > 0 else '-y', m['red'], tur)
+    return {'layers': {'body': body, 'turret': tur}}
+
+
+def scud():
+    body = root('body')
+    m = pact_set()
+    L, W = 0.74, 0.4
+    wheelset(body, [-0.52, -0.3, 0.26, 0.48], W - 0.04, H(4.4), m['steel'], m['rubber'], 0.08)
+    box('chassis', -L, L - 0.02, -0.26, 0.26, H(3), H(7), m['dark'], body)
+    for s in (1, -1):
+        loft('cab', rect(0.5, L, s * 0.22 - 0.13, s * 0.22 + 0.13), H(7), rect(0.5, L - 0.05, s * 0.22 - 0.12, s * 0.22 + 0.12), H(14), m['hull'], body)
+        box('glass', L - 0.055, L - 0.045, s * 0.22 - 0.1, s * 0.22 + 0.1, H(10.5), H(13), m['glass'], body, bevel=0)
+    box('deck', -L, 0.46, -W + 0.04, W - 0.04, H(7), H(9), m['dark'], body)
+    for y0, y1 in ((W - 0.045, W - 0.03), (-W + 0.03, -W + 0.045)):
+        box('trim', -L, 0.46, y0, y1, H(7.4), H(8.6), team_mat(), body, team=True, bevel=0)
+    star('star', (0.6, -0.355, H(10.5)), 0.04, '-y', m['red'], body)
+    # missile on the erector, slightly raised
+    ere = pivot('erector', body, (-0.62, 0, H(11)))
+    ere.rotation_euler = (0, -0.16, 0)
+    cyl('missile', 0.065, 0.98, (0.49, 0, 0.065), 'x', mat('#c8c4b0', rough=0.5, grime=0.2), ere, verts=14)
+    cyl('nose', 0.065, 0.2, (1.08, 0, 0.065), 'x', mat('#6a1c14', rough=0.5), ere, verts=14, r2=0.0)
+    for s in (1, -1):
+        box('fin', -0.02, 0.1, s * 0.09 - 0.008, s * 0.09 + 0.008, 0.0, 0.13, mat('#8a8676'), ere, bevel=0)
+    box('cradle', 0.0, 0.9, -0.08, 0.08, -0.03, 0.0, m['steel'], ere, bevel=0)
+    return {'layers': {'body': body}}
+
+
+# ---------- aircraft (no baked ground shadow: the game draws it below the aircraft) ----------
+def a10():
+    body = root('body')
+    grey = mat('#6e7a76', grime=0.12)
+    dark = mat('#4a5250', grime=0.15)
+    z = H(6)
+    loft('fuselage', [(0.62, 0), (0.5, -0.06), (-0.5, -0.05), (-0.62, 0), (-0.5, 0.05), (0.5, 0.06)], z - H(2),
+         [(0.58, 0), (0.48, -0.05), (-0.5, -0.04), (-0.6, 0), (-0.5, 0.04), (0.48, 0.05)], z + H(2.4), grey, body, bevel=0.012)
+    loft('wing', [(0.14, -0.64), (0.14, 0.64), (-0.08, 0.64), (-0.08, -0.64)], z - H(0.4), [(0.13, -0.62), (0.13, 0.62), (-0.07, 0.62), (-0.07, -0.62)], z + H(0.5), grey, body, bevel=0.006)
+    for s in (1, -1):
+        cyl('engine', 0.055, 0.26, (-0.26, s * 0.13, z + H(3.8)), 'x', dark, body, verts=14)
+        box('pylon', -0.3, -0.2, s * 0.13 - 0.01, s * 0.13 + 0.01, z, z + H(3), dark, body, bevel=0)
+        box('fin', -0.6, -0.48, s * 0.25 - 0.012, s * 0.25 + 0.012, z, z + H(8), team_mat(), body, team=True)
+        for k in (0.3, 0.45):
+            cyl('bomb', 0.02, 0.16, (0.0, s * k, z - H(1.6)), 'x', mat('#4a4c3e'), body, verts=8)
+    box('tailplane', -0.6, -0.5, -0.28, 0.28, z + H(0.3), z + H(1.1), grey, body)
+    for y0, y1 in ((0.5, 0.6), (-0.6, -0.5)):
+        box('tip', -0.075, 0.135, y0, y1, z + H(0.5), z + H(0.7), team_mat(), body, team=True, bevel=0)
+    dome('canopy', 0.09, 0.05, H(2.2), (0.42, 0, z + H(2.2)), mat('#3e5462', rough=0.15, metal=0.3, grime=0), body)
+    barrel('gau8', 0.6, 0.1, H(0.6), 0, z - H(0.6), mat('#1c1d18'), body)
+    return {'layers': {'body': body}}
+
+
+def su25():
+    body = root('body')
+    skin = mat('#8a7a50', camo=['#4e5a34', '#6a4a2a'], grime=0.12, scale=18)
+    red = mat(RED, rough=0.5, grime=0.05)
+    z = H(6)
+    loft('fuselage', [(0.64, 0), (0.45, -0.07), (-0.5, -0.06), (-0.6, 0), (-0.5, 0.06), (0.45, 0.07)], z - H(2),
+         [(0.6, 0), (0.42, -0.06), (-0.5, -0.05), (-0.58, 0), (-0.5, 0.05), (0.42, 0.06)], z + H(2.2), skin, body, bevel=0.012)
+    for s in (1, -1):
+        loft('wing', [(0.2, s * 0.06), (-0.12, s * 0.56), (-0.24, s * 0.56), (-0.14, s * 0.06)], z - H(0.3),
+             [(0.19, s * 0.06), (-0.12, s * 0.55), (-0.23, s * 0.55), (-0.14, s * 0.06)], z + H(0.5), skin, body, bevel=0.004)
+        box('intake', 0.06, 0.3, s * 0.085 - 0.03, s * 0.085 + 0.03, z - H(1.4), z + H(1.6), mat('#4a4430'), body)
+        star('star', (-0.17, s * 0.4, z + H(0.6)), 0.05, '+z', red, body)
+        cyl('pod', 0.025, 0.16, (-0.02, s * 0.32, z - H(1.4)), 'x', mat('#3a3c30'), body, verts=8)
+    loft('fin', [(-0.4, -0.01), (-0.6, -0.01), (-0.6, 0.01), (-0.4, 0.01)], z + H(1.5), [(-0.52, -0.01), (-0.62, -0.01), (-0.62, 0.01), (-0.52, 0.01)], z + H(10), team_mat(), body, team=True, bevel=0)
+    box('tailplane', -0.6, -0.5, -0.22, 0.22, z + H(0.3), z + H(1.0), skin, body)
+    dome('canopy', 0.08, 0.05, H(2.4), (0.38, 0, z + H(2.0)), mat('#3e5462', rough=0.15, metal=0.3, grime=0), body)
+    return {'layers': {'body': body}}
+
+
+def cobra():
+    body = root('body')
+    drab = mat('#4e5634', grime=0.15)
+    z = H(4)
+    loft('fuselage', [(0.48, 0), (0.4, -0.06), (-0.42, -0.07), (-0.46, 0), (-0.42, 0.07), (0.4, 0.06)], z,
+         [(0.44, 0), (0.36, -0.05), (-0.4, -0.06), (-0.44, 0), (-0.4, 0.06), (0.36, 0.05)], z + H(5.5), drab, body, bevel=0.012)
+    box('boom', -0.92, -0.42, -0.025, 0.025, z + H(3), z + H(5.5), drab, body)
+    box('fin', -0.95, -0.85, -0.012, 0.012, z + H(3.5), z + H(11), team_mat(), body, team=True)
+    box('tailrotor', -0.93, -0.87, 0.015, 0.025, z + H(5), z + H(10), mat('#2a2a24'), body, bevel=0)
+    loft('canopy', [(0.42, -0.04), (0.42, 0.04), (0.02, 0.05), (0.02, -0.05)], z + H(5.5), [(0.34, -0.035), (0.34, 0.035), (0.06, 0.04), (0.06, -0.04)], z + H(8.5), mat('#3e5462', rough=0.15, metal=0.3, grime=0), body)
+    box('engine', -0.3, 0.0, -0.06, 0.06, z + H(5.5), z + H(8.5), drab, body)
+    cyl('mast', H(0.8), H(3), (0, 0, z + H(9.5)), 'z', mat('#1c1d18'), body, verts=8)
+    for s in (1, -1):
+        y0, y1 = (0.06, 0.24) if s > 0 else (-0.24, -0.06)
+        box('stub', -0.12, 0.04, y0, y1, z + H(2), z + H(2.8), drab, body)
+        cyl('pod', 0.035, 0.18, (-0.03, s * 0.2, z + H(1.2)), 'x', mat('#2c2e26'), body, verts=10)
+    box('band', -0.4, -0.3, -0.072, 0.072, z + H(1), z + H(5), team_mat(), body, team=True, bevel=0)
+    barrel('chin', 0.42, 0.12, H(0.5), 0, z - H(0.5), mat('#1c1d18'), body)
+    return {'layers': {'body': body}}
+
+
+def hind():
+    body = root('body')
+    skin = mat('#8a7a50', camo=['#4e5a34', '#6a4a2a'], grime=0.12, scale=16)
+    red = mat(RED, rough=0.5, grime=0.05)
+    z = H(4)
+    loft('fuselage', [(0.52, 0), (0.42, -0.12), (-0.48, -0.13), (-0.54, 0), (-0.48, 0.13), (0.42, 0.12)], z,
+         [(0.4, 0), (0.34, -0.1), (-0.46, -0.11), (-0.52, 0), (-0.46, 0.11), (0.34, 0.1)], z + H(8.5), skin, body, bevel=0.015)
+    for f, zz in ((0.44, H(4)), (0.3, H(6))):
+        dome('canopy', 0.07, 0.065, H(3), (f, 0, z + zz), mat('#3e5462', rough=0.15, metal=0.3, grime=0), body)
+    box('boom', -1.0, -0.46, -0.035, 0.035, z + H(4), z + H(7.5), skin, body)
+    box('fin', -1.04, -0.92, -0.014, 0.014, z + H(5), z + H(14), team_mat(), body, team=True)
+    box('engines', -0.36, 0.12, -0.1, 0.1, z + H(8.5), z + H(11.5), skin, body)
+    cyl('mast', H(0.9), H(3), (0, 0, z + H(12.5)), 'z', mat('#1c1d18'), body, verts=8)
+    for s in (1, -1):
+        loft('wing', [(0.04, s * 0.1), (0.02, s * 0.44), (-0.12, s * 0.44), (-0.14, s * 0.1)], z + H(3.5),
+             [(0.04, s * 0.1), (0.02, s * 0.44), (-0.12, s * 0.44), (-0.14, s * 0.1)], z + H(4.4), skin, body, bevel=0)
+        for k in (0.24, 0.38):
+            cyl('pod', 0.035, 0.16, (-0.04, s * k, z + H(2.4)), 'x', mat('#2c2e26'), body, verts=10)
+        star('star', (-0.7, s * 0.04, z + H(5.8)), 0.04, '+y' if s > 0 else '-y', red, body)
+    barrel('chin', 0.5, 0.1, H(0.6), 0, z + H(0.8), mat('#1c1d18'), body)
+    return {'layers': {'body': body}}
+
+
 # ---------- infantry ----------
-def soldier(nato):
-    rootobj = root('body')
-    uni = mat('#55692a', camo=['#6a4220', '#1e1d16', '#7c8a3a'], grime=0.1, scale=120) if nato else mat('#a8925a', grime=0.15, scale=110)
-    helmet = mat('#4f5f28', camo=['#6a4220', '#1e1d16'], grime=0.1, scale=140) if nato else mat('#4d8034', rough=0.5, metal=0.15, grime=0.15)
-    skin = mat('#c49a78', rough=0.6, grime=0.05)
+INF_STYLES = {
+    # look: uniform, uniform camo, headgear, weapon, team part
+    'inf_NATO': dict(uni='#55692a', camo=['#6a4220', '#1e1d16', '#7c8a3a'], head='pasgt', weapon='rifle', team='pack'),
+    'inf_PACT': dict(uni='#a8925a', head='ssh', weapon='ak', team='roll'),
+    'atinf_NATO': dict(uni='#55692a', camo=['#6a4220', '#1e1d16', '#7c8a3a'], head='pasgt', weapon='dragon', team='pack'),
+    'atinf_PACT': dict(uni='#a8925a', head='ssh', weapon='rpg', team='roll'),
+    'manpads_NATO': dict(uni='#55692a', camo=['#6a4220', '#1e1d16', '#7c8a3a'], head='pasgt', weapon='manpads', team='pack'),
+    'manpads_PACT': dict(uni='#a8925a', head='ssh', weapon='manpads', team='roll'),
+    'engineer_NATO': dict(uni='#8a7a4c', head='hardhat', hat='#d8a820', weapon='none', team='toolbag'),
+    'engineer_PACT': dict(uni='#6a6a62', head='hardhat', hat='#d8682a', weapon='none', team='toolbag'),
+    'commando_NATO': dict(uni='#26272a', head='balaclava', weapon='smg', team='pack'),
+    'marine_NATO': dict(uni='#4a5a3a', camo=['#2a3420', '#6a6a44', '#1e1d16'], head='pasgt', weapon='rifle', team='pack'),
+    'mujahid_NATO': dict(uni='#9a8a64', head='pakol', hat='#8a6a4a', weapon='rpg', team='sash', skin='#a87a58'),
+    'spy_PACT': dict(uni='#5a5852', head='fedora', hat='#2a2925', weapon='pistol', team='armband', coat=True),
+    'kpa_PACT': dict(uni='#7a6e44', head='cap', hat='#6a5e3a', weapon='ak', team='roll', count=3),
+    'vc_PACT': dict(uni='#26262a', head='conical', hat='#c8b078', weapon='ak', team='sash'),
+    'sapper_PACT': dict(uni='#5a6232', head='beret', hat='#9e2a1e', weapon='satchel', team='satchel'),
+}
+
+
+def soldier_figure(parent, cfg, offset=(0, 0), seed=0):
+    nato = cfg.get('head') in ('pasgt',) or cfg.get('nato', False)
+    uni = mat(cfg['uni'], camo=cfg.get('camo'), grime=0.1, scale=120)
+    skin = mat(cfg.get('skin', '#c49a78'), rough=0.6, grime=0.05)
     boots = mat('#1c1a16', grime=0.05)
-    gun = mat('#1c1d18', rough=0.5, metal=0.3, grime=0.05)
+    gunm = mat('#1c1d18', rough=0.5, metal=0.3, grime=0.05)
     wood = mat('#6a4428', rough=0.6, grime=0.2)
-    # proportions are exaggerated like RA2 so soldiers read at 20 px tall
+    fig = pivot('fig', parent, (offset[0], offset[1], 0))
     hip_z, sh_z = 0.2, 0.37
     legs = []
     for s in (1, -1):
-        hp = pivot('hip', rootobj, (0, s * 0.04, hip_z))
+        hp = pivot('hip', fig, (0, s * 0.04, hip_z))
         box('leg', -0.03, 0.03, -0.028, 0.028, -hip_z + 0.025, 0.0, uni, hp, bevel=0.004)
         box('boot', -0.032, 0.05, -0.03, 0.03, -hip_z, -hip_z + 0.035, boots, hp, bevel=0.004)
         legs.append(hp)
-    torso = pivot('torso', rootobj, (0, 0, hip_z))
-    loft('chest', rect(-0.045, 0.045, -0.075, 0.075), 0.0, rect(-0.05, 0.05, -0.085, 0.085), sh_z - hip_z, uni, torso, bevel=0.01)
-    # team colour: backpack (NATO ALICE pack) or bedroll (Pact) plus a chest strap
-    if nato:
+    torso = pivot('torso', fig, (0, 0, hip_z))
+    zt = sh_z - hip_z
+    bottom = -0.1 if cfg.get('coat') else 0.0
+    loft('chest', rect(-0.045, 0.045, -0.075, 0.075), bottom, rect(-0.05, 0.05, -0.085, 0.085), zt, uni, torso, bevel=0.01)
+    if cfg.get('head') == 'pakol' or cfg.get('team') == 'sash':
+        pass
+    # team-colour gear
+    t = cfg['team']
+    if t == 'pack':
         box('pack', -0.11, -0.045, -0.06, 0.06, 0.06, 0.16, team_mat(), torso, team=True, bevel=0.008)
-    else:
-        cyl('roll', 0.03, 0.17, (-0.06, 0, sh_z - hip_z + 0.005), 'y', team_mat(), torso, team=True)
-    box('strap', 0.044, 0.052, -0.08, 0.08, 0.1, 0.13, team_mat(), torso, team=True, bevel=0)
+    elif t == 'roll':
+        cyl('roll', 0.03, 0.17, (-0.06, 0, zt + 0.005), 'y', team_mat(), torso, team=True)
+    elif t == 'toolbag':
+        box('bag', -0.04, 0.05, 0.085, 0.13, -0.05, 0.03, team_mat(), torso, team=True, bevel=0.006)
+    elif t == 'satchel':
+        box('satchel', -0.03, 0.05, -0.13, -0.085, -0.04, 0.04, team_mat(), torso, team=True, bevel=0.006)
+    elif t == 'armband':
+        for s in (1, -1):
+            box('band', -0.025, 0.025, s * 0.1 - 0.024, s * 0.1 + 0.024, zt - 0.06, zt - 0.03, team_mat(), torso, team=True, bevel=0)
+    if t == 'sash' or t in ('pack', 'roll', 'satchel'):
+        # diagonal strap across the chest
+        loft('strap', [(0.046, -0.08), (0.054, -0.08), (0.054, -0.05), (0.046, -0.05)], 0.02, [(0.046, 0.05), (0.054, 0.05), (0.054, 0.08), (0.046, 0.08)], zt - 0.01, team_mat(), torso, team=True, bevel=0)
     box('belt', -0.05, 0.052, -0.08, 0.08, 0.0, 0.025, mat('#2e2a1e'), torso, bevel=0)
-    sphere('head', 0.045, (0.005, 0, sh_z - hip_z + 0.06), skin, torso)
-    if nato:
-        dome('helmet', 0.065, 0.062, 0.055, (0.0, 0, sh_z - hip_z + 0.065), helmet, torso)
-    else:
-        dome('helmet', 0.06, 0.058, 0.06, (0.004, 0, sh_z - hip_z + 0.07), helmet, torso)
-        cyl('brim', 0.064, 0.008, (0.004, 0, sh_z - hip_z + 0.07), 'z', helmet, torso, verts=14)
-        star('star', (0.06, 0, sh_z - hip_z + 0.095), 0.016, '+x', mat('#d8301e', rough=0.4, grime=0, emit=0.3), torso)
+    hz = zt + 0.06
+    head = cfg['head']
+    sphere('head', 0.045, (0.005, 0, hz), mat('#141414') if head == 'balaclava' else skin, torso)
+    hat = mat(cfg.get('hat', '#4f5f28'), rough=0.6, grime=0.12)
+    if head == 'pasgt':
+        dome('helmet', 0.065, 0.062, 0.055, (0.0, 0, hz + 0.005), mat('#4f5f28', camo=['#6a4220', '#1e1d16'], grime=0.1, scale=140), torso)
+    elif head == 'ssh':
+        hm = mat('#4d8034', rough=0.5, metal=0.15, grime=0.15)
+        dome('helmet', 0.06, 0.058, 0.06, (0.004, 0, hz + 0.01), hm, torso)
+        cyl('brim', 0.064, 0.008, (0.004, 0, hz + 0.01), 'z', hm, torso, verts=14)
+        star('star', (0.06, 0, hz + 0.035), 0.016, '+x', mat('#d8301e', rough=0.4, grime=0, emit=0.3), torso)
+    elif head == 'hardhat':
+        dome('hat', 0.058, 0.056, 0.05, (0.0, 0, hz + 0.015), hat, torso)
+        cyl('brim', 0.07, 0.008, (0.0, 0, hz + 0.015), 'z', hat, torso, verts=14)
+    elif head == 'fedora':
+        cyl('crown', 0.042, 0.045, (0.0, 0, hz + 0.045), 'z', hat, torso, verts=12)
+        cyl('brim', 0.075, 0.008, (0.0, 0, hz + 0.025), 'z', hat, torso, verts=16)
+    elif head == 'pakol':
+        cyl('pakol', 0.055, 0.035, (0.0, 0, hz + 0.04), 'z', hat, torso, verts=14)
+        sphere('beard', 0.03, (0.04, 0, hz - 0.03), mat('#2a1e14'), torso)
+    elif head == 'cap':
+        cyl('cap', 0.05, 0.03, (0.0, 0, hz + 0.04), 'z', hat, torso, verts=12)
+        box('peak', 0.03, 0.08, -0.03, 0.03, hz + 0.03, hz + 0.038, hat, torso, bevel=0)
+        star('star', (0.052, 0, hz + 0.042), 0.012, '+x', mat('#d8301e', emit=0.3, grime=0), torso)
+    elif head == 'conical':
+        cyl('nonla', 0.11, 0.06, (0.0, 0, hz + 0.05), 'z', hat, torso, verts=18, r2=0.0)
+    elif head == 'beret':
+        sphere('beret', 0.05, (-0.005, -0.01, hz + 0.035), hat, torso, scale=(1.05, 1.0, 0.45))
     arms = []
     for s in (1, -1):
-        sp = pivot('shoulder', torso, (0, s * 0.1, sh_z - hip_z - 0.015))
+        sp = pivot('shoulder', torso, (0, s * 0.1, zt - 0.015))
         box('arm', -0.022, 0.022, -0.022, 0.022, -0.13, 0.0, uni, sp, bevel=0.004)
         sphere('hand', 0.018, (0, 0, -0.14), skin, sp)
         arms.append(sp)
-    # rifle held across the body; raised to the shoulder when firing
-    rifle = pivot('rifle', torso, (0.06, -0.03, 0.08))
-    box('stock', -0.09, -0.02, -0.012, 0.012, -0.02, 0.015, wood if not nato else gun, rifle, bevel=0)
-    box('receiver', -0.02, 0.08, -0.012, 0.012, -0.012, 0.02, gun, rifle, bevel=0)
-    box('mag', 0.02, 0.045, -0.01, 0.01, -0.05, -0.01, gun if nato else mat('#8a4a22'), rifle, bevel=0)
-    barrel('muzzle', 0.08, 0.08, 0.007, 0, 0.005, gun, rifle)
-    flash = sphere('flash', 0.03, (0.18, 0, 0.005), mat('#ffd25a', emit=6.0, grime=0), rifle, scale=(1.6, 1, 1))
-    flash.hide_render = True
+    weapon = cfg['weapon']
+    wpn = pivot('weapon', torso, (0.06, -0.03, 0.08))
+    flash_at = 0.18
+    if weapon in ('rifle', 'ak', 'smg'):
+        n = 0.75 if weapon == 'smg' else 1.0
+        box('stock', -0.09 * n, -0.02, -0.012, 0.012, -0.02, 0.015, gunm if weapon != 'ak' else wood, wpn, bevel=0)
+        box('receiver', -0.02, 0.08 * n, -0.012, 0.012, -0.012, 0.02, gunm, wpn, bevel=0)
+        box('mag', 0.02, 0.045, -0.01, 0.01, -0.05, -0.01, mat('#8a4a22') if weapon == 'ak' else gunm, wpn, bevel=0)
+        barrel('muzzle', 0.08 * n, 0.08 * n, 0.007, 0, 0.005, gunm, wpn)
+        flash_at = 0.18 * n
+    elif weapon in ('dragon', 'manpads'):
+        cyl('tube', 0.024, 0.3, (0.04, 0, 0.0), 'x', mat('#4a5232' if weapon == 'dragon' else '#5a6040', grime=0.2), wpn, verts=10)
+        box('sight', 0.0, 0.05, -0.04, -0.024, 0.0, 0.03, gunm, wpn, bevel=0)
+        flash_at = 0.21
+    elif weapon == 'rpg':
+        cyl('tube', 0.013, 0.26, (0.02, 0, 0.0), 'x', mat('#3c4430'), wpn, verts=8)
+        cyl('warhead', 0.03, 0.08, (0.19, 0, 0.0), 'x', mat('#4a5432'), wpn, verts=10, r2=0.012)
+        box('grip', -0.01, 0.01, -0.008, 0.008, -0.04, 0.0, wood, wpn, bevel=0)
+        flash_at = 0.25
+    elif weapon == 'pistol':
+        box('pistol', 0.0, 0.06, -0.01, 0.01, -0.01, 0.015, gunm, wpn, bevel=0)
+        flash_at = 0.09
+    elif weapon == 'satchel':
+        box('charge', -0.03, 0.04, -0.03, 0.03, -0.03, 0.03, mat('#5a4a2a'), wpn, bevel=0.004)
+    flash = None
+    if weapon not in ('none', 'satchel'):
+        flash = sphere('flash', 0.03, (flash_at, 0, 0.005), mat('#ffd25a', emit=6.0, grime=0), wpn, scale=(1.6, 1, 1))
+        flash.hide_render = True
+    shoulder_w = weapon in ('dragon', 'manpads', 'rpg')
+    phase = seed * 1.3
+
+    def apply(step=None, fire=False):
+        st = None if step is None else step + phase
+        sw = 0 if st is None else math.sin(st * math.pi / 2) * 0.55
+        legs[0].rotation_euler = (0, sw, 0)
+        legs[1].rotation_euler = (0, -sw, 0)
+        torso.rotation_euler = (0, 0.06 if st is not None else 0, 0)
+        torso.location.z = hip_z + (abs(math.sin(st * math.pi / 2)) * -0.006 if st is not None else 0)
+        if shoulder_w:
+            # launchers ride on the right shoulder; MANPADS point up at the sky
+            wpn.location = (0.0, -0.065, zt + 0.02)
+            wpn.rotation_euler = (0, -0.6 if weapon == 'manpads' else 0, 0)
+            arms[0].rotation_euler = (0, -1.2, 0.3)
+            arms[1].rotation_euler = (0, -1.3, -0.1)
+        elif fire and weapon != 'none':
+            wpn.location = (0.08, -0.035, zt - 0.02)
+            wpn.rotation_euler = (0, 0, 0)
+            arms[0].rotation_euler = (0, -1.35, 0.25)
+            arms[1].rotation_euler = (0, -1.45, -0.2)
+        else:
+            wpn.location = (0.06, -0.03, 0.08)
+            wpn.rotation_euler = (0, -0.5 if weapon != 'satchel' else 0, 0)
+            arms[0].rotation_euler = (0, -0.6 + sw * 0.4, 0.2)
+            arms[1].rotation_euler = (0, -0.8 - sw * 0.4, -0.2)
+        if flash: flash.hide_render = not fire
+    return apply
+
+
+def infantry(key):
+    cfg = INF_STYLES[key]
+    rootobj = root('body')
+    n = cfg.get('count', 1)
+    offsets = [(0, 0)] if n == 1 else [(0.1, 0.1), (-0.12, 0.02), (0.06, -0.14)]
+    figs = [soldier_figure(rootobj, cfg, o, i) for i, o in enumerate(offsets)]
 
     def pose(step=None, fire=False):
         def apply():
-            sw = 0 if step is None else math.sin(step * math.pi / 2) * 0.55
-            legs[0].rotation_euler = (0, sw, 0)
-            legs[1].rotation_euler = (0, -sw, 0)
-            torso.rotation_euler = (0, 0.06 if step is not None else 0, 0)
-            torso.location.z = hip_z + (abs(math.sin(step * math.pi / 2)) * -0.006 if step is not None else 0)
-            if fire:
-                rifle.location = (0.08, -0.035, sh_z - hip_z - 0.02)
-                rifle.rotation_euler = (0, 0, 0)
-                arms[0].rotation_euler = (0, -1.35, 0.25)
-                arms[1].rotation_euler = (0, -1.45, -0.2)
-            else:
-                rifle.location = (0.06, -0.03, 0.08)
-                rifle.rotation_euler = (0, -0.5, 0)
-                arms[0].rotation_euler = (0, -0.6 + sw * 0.4, 0.2)
-                arms[1].rotation_euler = (0, -0.8 - sw * 0.4, -0.2)
-            flash.hide_render = not fire
+            for f in figs: f(step, fire)
         return apply
 
     poses = {'idle': pose(), 'walk0': pose(0), 'walk1': pose(1), 'walk2': pose(2), 'walk3': pose(3), 'fire': pose(fire=True)}
     return {'layers': {'body': rootobj}, 'poses': {'body': poses}}
 
 
+def inf_unit(key, frame=48):
+    return {'build': lambda: infantry(key), 'frame': frame, 'dirs': 8}
+
+
+def veh(build, frame=96, **kw):
+    return dict(build=build, frame=frame, dirs=32, **kw)
+
+
 # key -> how to build it; keys are <look>_<faction> as used by client/art-units.js
 UNITS = {
-    'tank_PACT': {'build': t72, 'frame': 96, 'dirs': 32},
-    'tank_NATO': {'build': m60, 'frame': 96, 'dirs': 32},
-    'harvester_NATO': {'build': ore_truck_nato, 'frame': 112, 'dirs': 32},
-    'harvester_PACT': {'build': war_miner, 'frame': 112, 'dirs': 32},
-    'inf_NATO': {'build': lambda: soldier(True), 'frame': 48, 'dirs': 8},
-    'inf_PACT': {'build': lambda: soldier(False), 'frame': 48, 'dirs': 8},
+    'tank_PACT': veh(t72),
+    'tank_NATO': veh(m60),
+    'harvester_NATO': veh(ore_truck_nato, 112),
+    'harvester_PACT': veh(war_miner, 112),
+    'jeep_NATO': veh(m151, 80),
+    'jeep_PACT': veh(brdm, 80),
+    'arty_NATO': veh(m109, 112),
+    'vulcan_NATO': veh(vulcan),
+    'heavytank_NATO': veh(abrams, 104),
+    'leopard_NATO': veh(leopard2, 112),
+    'merkava_NATO': veh(merkava, 104),
+    'missile_NATO': veh(pluton, 112),
+    'g6_NATO': veh(g6, 128),
+    'mcv_NATO': veh(lambda: mcv(True), 128),
+    'mcv_PACT': veh(lambda: mcv(False), 128),
+    'apc_PACT': veh(skot, 96),
+    'strela_PACT': veh(strela, 80),
+    'grad_PACT': veh(grad, 112),
+    'shilka_PACT': veh(shilka),
+    'superheavy_PACT': veh(obj279, 120),
+    'scud_PACT': veh(scud, 136),
+    'a10_NATO': veh(a10, 120, shadow=False),
+    'su25_PACT': veh(su25, 120, shadow=False),
+    'cobra_NATO': veh(cobra, 120, shadow=False),
+    'hind_PACT': veh(hind, 128, shadow=False),
 }
+for _k, _cfg in INF_STYLES.items():
+    UNITS[_k] = inf_unit(_k, 64 if _cfg.get('count', 1) > 1 else 48)

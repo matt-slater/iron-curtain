@@ -25,7 +25,7 @@ def over(dst, src):
 man = json.load(open(os.path.join(SPR, 'manifest.json')))
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 keys = argv or sorted(man)
-cell = 224
+cell = max(man[k]["frame"] for k in keys)
 out = np.zeros((cell * len(keys), cell * 8, 4), dtype=np.float32)
 out[..., :3] = (0.24, 0.29, 0.16)
 out[..., 3] = 1

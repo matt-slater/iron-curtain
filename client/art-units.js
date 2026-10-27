@@ -3,7 +3,7 @@
 // Warsaw Pact: Soviet green, low dome turrets, rear fuel drums, boat-hulled scouts, khaki uniforms.
 import { UNITS } from './shared/data.js';
 import { iso, shade, hash, prism, rect, octagon, local, barrel, shadow, turretFirst, cylinder, line, poly } from './art-core.js';
-import { hasSprite, drawSprite, spriteRows } from './sprite-art.js';
+import { hasSprite, drawSprite, spriteRows, spritePivot } from './sprite-art.js';
 
 const OUTLINE_SOFT = 'rgba(6,7,5,0.6)';
 
@@ -345,7 +345,11 @@ function heli(ctx, x, y, dir, color, time, kind) {
     prism(ctx, cx2, cy2, dir, rect(-0.12, 0.12, 0.08), 8, 11, '#3e5462', '#86a0a8');
   }
   prismFlat(ctx, x, y, dir, rect(-L * 0.9, -L * 0.6, W * 1.6), (hind ? 12 : 9) + 0.1, shade(color, 0.95));
-  // main rotor: blurred disc plus spinning blades
+  heliRotor(ctx, x, y, time, hind);
+}
+
+// Main rotor drawn live over the body (also used on top of rendered helicopter sprites).
+function heliRotor(ctx, x, y, time, hind) {
   const rz = hind ? 16 : 13, R = hind ? 0.68 : 0.58;
   const [hx, hy] = iso(x, y, rz);
   line(ctx, iso(x, y, hind ? 12 : 9), [hx, hy], '#1c1d18', 2);
@@ -396,7 +400,11 @@ export function drawVehicle(ctx, look, x, y, dir, tdir, color, faction, time, fl
   const key = `${look}_${faction}`;
   if (hasSprite(key)) {
     drawSprite(ctx, key, 'body', x, y, dir, color);
-    if (spriteRows(key).turret) drawSprite(ctx, key, 'turret', x, y, tdir, color);
+    if (spriteRows(key).turret) {
+      const [tx, ty] = local(x, y, dir, spritePivot(key), 0);
+      drawSprite(ctx, key, 'turret', tx, ty, tdir, color);
+    }
+    if (look === 'cobra' || look === 'hind') heliRotor(ctx, x, y, time, look === 'hind');
     return;
   }
   const moving = flags & 2;

@@ -1,4 +1,281 @@
 {
+ "a10_NATO": {
+  "anchor": [
+   120.0,
+   120.0
+  ],
+  "frame": 240,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "apc_PACT": {
+  "anchor": [
+   96.0,
+   96.0
+  ],
+  "frame": 192,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "arty_NATO": {
+  "anchor": [
+   112.0,
+   112.0
+  ],
+  "frame": 224,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "atinf_NATO": {
+  "anchor": [
+   48.0,
+   48.0
+  ],
+  "frame": 96,
+  "pivot": 0,
+  "rows": {
+   "body.fire": {
+    "dirs": 8,
+    "row": 5
+   },
+   "body.idle": {
+    "dirs": 8,
+    "row": 0
+   },
+   "body.walk0": {
+    "dirs": 8,
+    "row": 1
+   },
+   "body.walk1": {
+    "dirs": 8,
+    "row": 2
+   },
+   "body.walk2": {
+    "dirs": 8,
+    "row": 3
+   },
+   "body.walk3": {
+    "dirs": 8,
+    "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "atinf_PACT": {
+  "anchor": [
+   48.0,
+   48.0
+  ],
+  "frame": 96,
+  "pivot": 0,
+  "rows": {
+   "body.fire": {
+    "dirs": 8,
+    "row": 5
+   },
+   "body.idle": {
+    "dirs": 8,
+    "row": 0
+   },
+   "body.walk0": {
+    "dirs": 8,
+    "row": 1
+   },
+   "body.walk1": {
+    "dirs": 8,
+    "row": 2
+   },
+   "body.walk2": {
+    "dirs": 8,
+    "row": 3
+   },
+   "body.walk3": {
+    "dirs": 8,
+    "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "cobra_NATO": {
+  "anchor": [
+   120.0,
+   120.0
+  ],
+  "frame": 240,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "commando_NATO": {
+  "anchor": [
+   48.0,
+   48.0
+  ],
+  "frame": 96,
+  "pivot": 0,
+  "rows": {
+   "body.fire": {
+    "dirs": 8,
+    "row": 5
+   },
+   "body.idle": {
+    "dirs": 8,
+    "row": 0
+   },
+   "body.walk0": {
+    "dirs": 8,
+    "row": 1
+   },
+   "body.walk1": {
+    "dirs": 8,
+    "row": 2
+   },
+   "body.walk2": {
+    "dirs": 8,
+    "row": 3
+   },
+   "body.walk3": {
+    "dirs": 8,
+    "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "engineer_NATO": {
+  "anchor": [
+   48.0,
+   48.0
+  ],
+  "frame": 96,
+  "pivot": 0,
+  "rows": {
+   "body.fire": {
+    "dirs": 8,
+    "row": 5
+   },
+   "body.idle": {
+    "dirs": 8,
+    "row": 0
+   },
+   "body.walk0": {
+    "dirs": 8,
+    "row": 1
+   },
+   "body.walk1": {
+    "dirs": 8,
+    "row": 2
+   },
+   "body.walk2": {
+    "dirs": 8,
+    "row": 3
+   },
+   "body.walk3": {
+    "dirs": 8,
+    "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "engineer_PACT": {
+  "anchor": [
+   48.0,
+   48.0
+  ],
+  "frame": 96,
+  "pivot": 0,
+  "rows": {
+   "body.fire": {
+    "dirs": 8,
+    "row": 5
+   },
+   "body.idle": {
+    "dirs": 8,
+    "row": 0
+   },
+   "body.walk0": {
+    "dirs": 8,
+    "row": 1
+   },
+   "body.walk1": {
+    "dirs": 8,
+    "row": 2
+   },
+   "body.walk2": {
+    "dirs": 8,
+    "row": 3
+   },
+   "body.walk3": {
+    "dirs": 8,
+    "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "g6_NATO": {
+  "anchor": [
+   128.0,
+   128.0
+  ],
+  "frame": 256,
+  "pivot": -0.2,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "grad_PACT": {
+  "anchor": [
+   112.0,
+   112.0
+  ],
+  "frame": 224,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
  "harvester_NATO": {
   "anchor": [
    112.0,
@@ -27,12 +304,47 @@
   },
   "scale": 2
  },
+ "heavytank_NATO": {
+  "anchor": [
+   104.0,
+   104.0
+  ],
+  "frame": 208,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "hind_PACT": {
+  "anchor": [
+   128.0,
+   128.0
+  ],
+  "frame": 256,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
  "inf_NATO": {
   "anchor": [
    48.0,
    48.0
   ],
   "frame": 96,
+  "pivot": 0,
   "rows": {
    "body.fire": {
     "dirs": 8,
@@ -67,6 +379,7 @@
    48.0
   ],
   "frame": 96,
+  "pivot": 0,
   "rows": {
    "body.fire": {
     "dirs": 8,
@@ -95,6 +408,459 @@
   },
   "scale": 2
  },
+ "jeep_NATO": {
+  "anchor": [
+   80.0,
+   80.0
+  ],
+  "frame": 160,
+  "pivot": -0.08,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "jeep_PACT": {
+  "anchor": [
+   80.0,
+   80.0
+  ],
+  "frame": 160,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "kpa_PACT": {
+  "anchor": [
+   64.0,
+   64.0
+  ],
+  "frame": 128,
+  "pivot": 0,
+  "rows": {
+   "body.fire": {
+    "dirs": 8,
+    "row": 5
+   },
+   "body.idle": {
+    "dirs": 8,
+    "row": 0
+   },
+   "body.walk0": {
+    "dirs": 8,
+    "row": 1
+   },
+   "body.walk1": {
+    "dirs": 8,
+    "row": 2
+   },
+   "body.walk2": {
+    "dirs": 8,
+    "row": 3
+   },
+   "body.walk3": {
+    "dirs": 8,
+    "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "leopard_NATO": {
+  "anchor": [
+   112.0,
+   112.0
+  ],
+  "frame": 224,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "manpads_NATO": {
+  "anchor": [
+   48.0,
+   48.0
+  ],
+  "frame": 96,
+  "pivot": 0,
+  "rows": {
+   "body.fire": {
+    "dirs": 8,
+    "row": 5
+   },
+   "body.idle": {
+    "dirs": 8,
+    "row": 0
+   },
+   "body.walk0": {
+    "dirs": 8,
+    "row": 1
+   },
+   "body.walk1": {
+    "dirs": 8,
+    "row": 2
+   },
+   "body.walk2": {
+    "dirs": 8,
+    "row": 3
+   },
+   "body.walk3": {
+    "dirs": 8,
+    "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "manpads_PACT": {
+  "anchor": [
+   48.0,
+   48.0
+  ],
+  "frame": 96,
+  "pivot": 0,
+  "rows": {
+   "body.fire": {
+    "dirs": 8,
+    "row": 5
+   },
+   "body.idle": {
+    "dirs": 8,
+    "row": 0
+   },
+   "body.walk0": {
+    "dirs": 8,
+    "row": 1
+   },
+   "body.walk1": {
+    "dirs": 8,
+    "row": 2
+   },
+   "body.walk2": {
+    "dirs": 8,
+    "row": 3
+   },
+   "body.walk3": {
+    "dirs": 8,
+    "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "marine_NATO": {
+  "anchor": [
+   48.0,
+   48.0
+  ],
+  "frame": 96,
+  "pivot": 0,
+  "rows": {
+   "body.fire": {
+    "dirs": 8,
+    "row": 5
+   },
+   "body.idle": {
+    "dirs": 8,
+    "row": 0
+   },
+   "body.walk0": {
+    "dirs": 8,
+    "row": 1
+   },
+   "body.walk1": {
+    "dirs": 8,
+    "row": 2
+   },
+   "body.walk2": {
+    "dirs": 8,
+    "row": 3
+   },
+   "body.walk3": {
+    "dirs": 8,
+    "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "mcv_NATO": {
+  "anchor": [
+   128.0,
+   128.0
+  ],
+  "frame": 256,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "mcv_PACT": {
+  "anchor": [
+   128.0,
+   128.0
+  ],
+  "frame": 256,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "merkava_NATO": {
+  "anchor": [
+   104.0,
+   104.0
+  ],
+  "frame": 208,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "missile_NATO": {
+  "anchor": [
+   112.0,
+   112.0
+  ],
+  "frame": 224,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "mujahid_NATO": {
+  "anchor": [
+   48.0,
+   48.0
+  ],
+  "frame": 96,
+  "pivot": 0,
+  "rows": {
+   "body.fire": {
+    "dirs": 8,
+    "row": 5
+   },
+   "body.idle": {
+    "dirs": 8,
+    "row": 0
+   },
+   "body.walk0": {
+    "dirs": 8,
+    "row": 1
+   },
+   "body.walk1": {
+    "dirs": 8,
+    "row": 2
+   },
+   "body.walk2": {
+    "dirs": 8,
+    "row": 3
+   },
+   "body.walk3": {
+    "dirs": 8,
+    "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "sapper_PACT": {
+  "anchor": [
+   48.0,
+   48.0
+  ],
+  "frame": 96,
+  "pivot": 0,
+  "rows": {
+   "body.fire": {
+    "dirs": 8,
+    "row": 5
+   },
+   "body.idle": {
+    "dirs": 8,
+    "row": 0
+   },
+   "body.walk0": {
+    "dirs": 8,
+    "row": 1
+   },
+   "body.walk1": {
+    "dirs": 8,
+    "row": 2
+   },
+   "body.walk2": {
+    "dirs": 8,
+    "row": 3
+   },
+   "body.walk3": {
+    "dirs": 8,
+    "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "scud_PACT": {
+  "anchor": [
+   136.0,
+   136.0
+  ],
+  "frame": 272,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "shilka_PACT": {
+  "anchor": [
+   96.0,
+   96.0
+  ],
+  "frame": 192,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "spy_PACT": {
+  "anchor": [
+   48.0,
+   48.0
+  ],
+  "frame": 96,
+  "pivot": 0,
+  "rows": {
+   "body.fire": {
+    "dirs": 8,
+    "row": 5
+   },
+   "body.idle": {
+    "dirs": 8,
+    "row": 0
+   },
+   "body.walk0": {
+    "dirs": 8,
+    "row": 1
+   },
+   "body.walk1": {
+    "dirs": 8,
+    "row": 2
+   },
+   "body.walk2": {
+    "dirs": 8,
+    "row": 3
+   },
+   "body.walk3": {
+    "dirs": 8,
+    "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "strela_PACT": {
+  "anchor": [
+   80.0,
+   80.0
+  ],
+  "frame": 160,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "su25_PACT": {
+  "anchor": [
+   120.0,
+   120.0
+  ],
+  "frame": 240,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   }
+  },
+  "scale": 2
+ },
+ "superheavy_PACT": {
+  "anchor": [
+   120.0,
+   120.0
+  ],
+  "frame": 240,
+  "pivot": 0,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
  "tank_NATO": {
   "anchor": [
    96.0,
@@ -119,6 +885,60 @@
    96.0
   ],
   "frame": 192,
+  "rows": {
+   "body": {
+    "dirs": 32,
+    "row": 0
+   },
+   "turret": {
+    "dirs": 32,
+    "row": 1
+   }
+  },
+  "scale": 2
+ },
+ "vc_PACT": {
+  "anchor": [
+   48.0,
+   48.0
+  ],
+  "frame": 96,
+  "pivot": 0,
+  "rows": {
+   "body.fire": {
+    "dirs": 8,
+    "row": 5
+   },
+   "body.idle": {
+    "dirs": 8,
+    "row": 0
+   },
+   "body.walk0": {
+    "dirs": 8,
+    "row": 1
+   },
+   "body.walk1": {
+    "dirs": 8,
+    "row": 2
+   },
+   "body.walk2": {
+    "dirs": 8,
+    "row": 3
+   },
+   "body.walk3": {
+    "dirs": 8,
+    "row": 4
+   }
+  },
+  "scale": 2
+ },
+ "vulcan_NATO": {
+  "anchor": [
+   96.0,
+   96.0
+  ],
+  "frame": 192,
+  "pivot": 0,
   "rows": {
    "body": {
     "dirs": 32,

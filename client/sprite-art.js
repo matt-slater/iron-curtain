@@ -93,3 +93,6 @@ export function drawSprite(ctx, key, row, x, y, dir, color) {
 }
 
 export function spriteRows(key) { return sheets.get(key)?.meta.rows; }
+
+// Forward offset (tiles) of the turret pivot from the unit centre.
+export function spritePivot(key) { return sheets.get(key)?.meta.pivot || 0; }

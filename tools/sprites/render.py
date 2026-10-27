@@ -148,7 +148,7 @@ def render_unit(key, spec, fast):
                 set_mask_mode(objs_of(root), mode == 'mask')
                 # only the hull layer gets a ground shadow: layers drawn on top (turrets) would otherwise
                 # paint their ground shadow across the hull underneath them
-                ground.hide_render = mode == 'mask' or lname != 'body'
+                ground.hide_render = mode == 'mask' or lname != 'body' or spec.get('shadow') is False
                 for k in range(dirs):
                     # game direction a (clockwise on screen) is a Blender rotation of -a
                     root.rotation_euler = (0, 0, -k * 2 * math.pi / dirs)
@@ -170,7 +170,7 @@ def render_unit(key, spec, fast):
     os.makedirs(OUT, exist_ok=True)
     save_sheet(sheet, os.path.join(OUT, f'{key}.png'))
     save_sheet(msheet, os.path.join(OUT, f'{key}.mask.png'))
-    return {'frame': W, 'scale': SCALE, 'anchor': [W / 2, H / 2],
+    return {'frame': W, 'scale': SCALE, 'anchor': [W / 2, H / 2], 'pivot': built.get('pivot', 0),
             'rows': {name: {'row': i, 'dirs': len(c)} for i, (name, c, _) in enumerate(rows)}}
 
 
